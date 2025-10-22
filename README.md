@@ -1,4 +1,5 @@
 Comfy Temi Odoo App
+
 Comfy es una aplicación Android desarrollada en Kotlin para el robot Temi V3, diseñada específicamente para entornos retail como tiendas de hogar y construcción. Integra la API JSON-RPC de Odoo 17 para proporcionar un catálogo interactivo parlante y visual con stock en tiempo real. Los usuarios pueden filtrar productos por categorías (piso, baño, grifería), visualizar fichas con imágenes, precios y stock por ubicación, y recibir notificaciones diarias de reposición. Soporta interacciones por voz y toque, ideal para asesores en tiendas.
 
 Características Principales
