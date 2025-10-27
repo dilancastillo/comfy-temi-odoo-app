@@ -14,7 +14,7 @@ class RepositionJobService : JobService() {
         Log.i("Reposition", "onStartJob() llamado. Params=$params")
         Robot.getInstance().speak(TtsRequest.create("Iniciando reposición.", false))
 
-        val yesterday = "2025-09-02"
+        val yesterday = "2025-10-26"
         /*val yesterday = try {
             java.time.LocalDate.now().minusDays(1).toString()
         } catch (_: Throwable) {
