@@ -12,7 +12,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 object OdooHelper {
     private val odooApi: OdooApi by lazy {
         val retrofit = Retrofit.Builder()
-            .baseUrl("https://comfer-staging-23393545.dev.odoo.com/")
+            .baseUrl("https://comfer-staging-24811489.dev.odoo.com/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
         retrofit.create(OdooApi::class.java)
@@ -30,9 +30,9 @@ object OdooHelper {
             addProperty("service", "object")
             addProperty("method", "execute_kw")
             val args = JsonArray().apply {
-                add("comfer-staging-23393545")
+                add("comfer-staging-24811489")
                 add(2)
-                add("7fb42a8cf419981e844ec857a5146b490f7faf44")
+                add("9588b9edaf833e41078736aafa96a10320a3b2db")
                 add(model)
                 add(method)
                 val innerArgs = JsonArray().apply {

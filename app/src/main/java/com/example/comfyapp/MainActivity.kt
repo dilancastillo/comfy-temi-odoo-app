@@ -64,7 +64,7 @@ class MainActivity : AppCompatActivity(), Robot.TtsListener {
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
 
         val retrofit = Retrofit.Builder()
-            .baseUrl("https://comfer-staging-23393545.dev.odoo.com/")
+            .baseUrl("https://comfer-staging-24811489.dev.odoo.com/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
         odooApi = retrofit.create(OdooApi::class.java)
