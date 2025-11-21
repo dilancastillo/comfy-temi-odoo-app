@@ -65,7 +65,7 @@
                 android:layout_height="wrap_content"/>
 
             <com.google.android.material.chip.Chip
-                android:id="@+id/chipPisoshidraulicos"
+                android:id="@+id/chipPisosHidraulicos"
                 style="@style/Widget.Material3.Chip.Filter"
                 android:text="Pisos hidráulicos"
                 android:checkable="true"

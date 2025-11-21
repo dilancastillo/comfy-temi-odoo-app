@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Tema principal -->
+    <style name="Theme.App" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#FCE4EC</item>
+        <item name="colorOnPrimary">@color/shrine_pink_900</item>
+
+        <!-- Estilo del texto de botones -->
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.App.Button</item>
+
+        <!-- Esquinas con estilo "cut" -->
+        <item name="shapeCornerFamily">cut</item>
+    </style>
+
+    <!-- Apariencia personalizada para textos de botones -->
+    <style name="TextAppearance.App.Button" parent="TextAppearance.Material3.LabelLarge">
+    </style>
+
+</resources>

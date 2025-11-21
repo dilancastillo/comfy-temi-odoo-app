@@ -16,5 +16,9 @@ class CoverActivity : AppCompatActivity() {
         binding.btnEmpezar.setOnClickListener {
             startActivity(Intent(this, MainActivity::class.java))
         }
+        // Botón que va a NewProductsActivity
+        binding.btnNewProducts.setOnClickListener {
+            startActivity(Intent(this, NewProductsActivity::class.java))
+        }
     }
 }

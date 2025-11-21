@@ -14,7 +14,10 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="12dp">
+        android:padding="15dp"
+        android:paddingBottom="120dp"
+        >
+
 
         <ImageView
             android:id="@+id/imgProduct"
@@ -56,7 +59,7 @@
             android:id="@+id/badgeStock"
             style="?attr/materialButtonOutlinedStyle"
             android:layout_width="wrap_content"
-            android:layout_height="32dp"
+            android:layout_height="50dp"
             android:minHeight="32dp"
             android:insetLeft="8dp"
             android:insetRight="8dp"
@@ -67,6 +70,7 @@
             app:strokeWidth="1dp"
             app:cornerRadius="16dp"
             app:layout_constraintBaseline_toBaselineOf="@+id/tvPrice"
+            android:textSize="17sp"
             app:layout_constraintEnd_toEndOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
