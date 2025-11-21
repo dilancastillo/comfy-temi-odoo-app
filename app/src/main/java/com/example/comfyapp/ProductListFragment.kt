@@ -31,7 +31,7 @@ class ProductListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.recyclerView.layoutManager = GridLayoutManager(context, 2)
+        binding.recyclerView.layoutManager = GridLayoutManager(context, 3)
         val products = arguments?.getSerializable("products") as? List<Product> ?: emptyList()
         val adapter = ProductAdapter(products) { product ->
             (activity as? MainActivity)?.speak("Producto: ${product.name}, Precio: ${product.price}, Inventario en Tunja: ${product.stock}. Descripción: ${product.description}")

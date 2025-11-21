@@ -6,55 +6,84 @@
     android:layout_height="match_parent"
     android:background="@color/background">
 
-    <!-- LOGO -->
+    <!-- ICONO REGRESAR -->
     <ImageView
-        android:id="@+id/imgLogo"
-        android:layout_width="650dp"
-        android:layout_height="250dp"
-        android:layout_marginTop="48dp"
-        android:src="@drawable/logo_comfer"
+        android:id="@+id/imgbtnback"
+        android:layout_width="25dp"
+        android:layout_height="25dp"
+        android:src="@drawable/regresar"
+        android:contentDescription="Regresar"
+        android:clickable="true"
+        android:focusable="true"
+        android:tint="@color/primary"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"/>
 
-    <!-- GRID LAYOUT CORRECTO -->
+    <!-- TÍTULO -->
+    <TextView
+        android:id="@+id/tituloMenu"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Productos nuevos"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:textColor="@color/primary"
+        app:layout_constraintTop_toBottomOf="@id/imgbtnback"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"/>
+
+    <!-- SUBTÍTULO -->
+    <TextView
+        android:id="@+id/subtituloMenu"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Selecciona una opción"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:textColor="@color/primary"
+        app:layout_constraintTop_toBottomOf="@id/tituloMenu"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- GRID DE 3 COLUMNAS -->
     <GridLayout
         android:id="@+id/cardGrid"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:columnCount="4"
+        android:columnCount="3"
         android:alignmentMode="alignMargins"
-
         android:useDefaultMargins="true"
-
-        android:paddingLeft="40dp"
-        android:paddingRight="40dp"
-
-        android:horizontalSpacing="24dp"
-        app:layout_constraintTop_toBottomOf="@id/imgLogo"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:paddingTop="24dp"
+        android:paddingBottom="24dp"
+        app:layout_constraintTop_toBottomOf="@id/subtituloMenu"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
         <!-- CARD 1 -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/btnNew_products"
+            android:id="@+id/btnRevestimientos"
             android:layout_width="0dp"
             android:layout_height="180dp"
             android:layout_columnWeight="1"
-            android:layout_margin="10dp"
+            android:layout_margin="12dp"
             android:clickable="true"
             android:foreground="?attr/selectableItemBackground"
             app:cardCornerRadius="14dp"
-
             app:cardElevation="0dp"
             app:strokeWidth="2dp"
             app:strokeColor="@color/primary"
             app:cardBackgroundColor="@android:color/transparent">
 
-
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="197dp"
                 android:layout_height="match_parent"
                 android:gravity="center_horizontal"
                 android:orientation="vertical">
@@ -68,14 +97,14 @@
                     android:layout_width="103dp"
                     android:layout_height="103dp"
                     android:layout_gravity="center_horizontal"
-                    android:src="@drawable/producto" />
+                    android:src="@drawable/revestimientos" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:gravity="center_horizontal"
-                    android:text="Productos Nuevos"
+                    android:text="Revestimientos"
                     android:textSize="20sp" />
 
                 <View
@@ -92,7 +121,7 @@
             android:layout_width="0dp"
             android:layout_height="180dp"
             android:layout_columnWeight="1"
-            android:layout_margin="10dp"
+            android:layout_margin="12dp"
             android:clickable="true"
             android:foreground="?attr/selectableItemBackground"
             app:cardCornerRadius="14dp"
@@ -116,14 +145,14 @@
                     android:layout_width="103dp"
                     android:layout_height="103dp"
                     android:layout_gravity="center_horizontal"
-                    android:src="@drawable/agotado" />
+                    android:src="@drawable/sanitario" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:gravity="center_horizontal"
-                    android:text="Productos Agotados"
+                    android:text="Sanitarios"
                     android:textSize="20sp" />
 
                 <View
@@ -140,7 +169,7 @@
             android:layout_width="0dp"
             android:layout_height="180dp"
             android:layout_columnWeight="1"
-            android:layout_margin="10dp"
+            android:layout_margin="12dp"
             android:clickable="true"
             android:foreground="?attr/selectableItemBackground"
             app:cardCornerRadius="14dp"
@@ -164,62 +193,14 @@
                     android:layout_width="103dp"
                     android:layout_height="103dp"
                     android:layout_gravity="center_horizontal"
-                    android:src="@drawable/actualizar" />
+                    android:src="@drawable/griferia" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:gravity="center_horizontal"
-                    android:text="Precios Nuevos"
-                    android:textSize="20sp" />
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- CARD 4 -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card4"
-            android:layout_width="0dp"
-            android:layout_height="180dp"
-            android:layout_columnWeight="1"
-            android:layout_margin="10dp"
-            android:clickable="true"
-            android:foreground="?attr/selectableItemBackground"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="2dp"
-            app:strokeColor="@color/primary"
-            app:cardBackgroundColor="@android:color/transparent">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center_horizontal"
-                android:orientation="vertical">
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
-
-                <ImageView
-                    android:layout_width="103dp"
-                    android:layout_height="103dp"
-                    android:layout_gravity="center_horizontal"
-                    android:src="@drawable/escritura" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:gravity="center_horizontal"
-                    android:text="Revisión de Info"
+                    android:text="Grifería"
                     android:textSize="20sp" />
 
                 <View
