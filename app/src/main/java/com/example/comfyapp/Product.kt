@@ -1,10 +1,12 @@
 package com.example.comfyapp
 
-data class Product (
+data class Product(
     val id: Int,
     val name: String,
     val price: Double,
-    val imageBase64: String?,
-    val stock: Int,
-    val description: String?
+    val imageBase64: String? = null,
+    val stock: Int = 0,
+    val description: String? = null,
+    var lastEntryQty: Double = 0.0,
+    var lastEntryDate: String = ""
 )
