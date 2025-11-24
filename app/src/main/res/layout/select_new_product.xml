@@ -105,36 +105,37 @@
             android:id="@+id/toggleButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:singleSelection="true">
+            app:singleSelection="true"
+            app:selectionRequired="false">
 
             <com.google.android.material.button.MaterialButton
-                style="?attr/materialButtonOutlinedStyle"
                 android:id="@+id/btnYesterday"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Día anterior"/>
+                android:text="Día anterior" />
 
             <com.google.android.material.button.MaterialButton
-                style="?attr/materialButtonOutlinedStyle"
                 android:id="@+id/btnLast7Days"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Últimos 7 días"/>
+                android:text="Últimos 7 días" />
 
             <com.google.android.material.button.MaterialButton
-                style="?attr/materialButtonOutlinedStyle"
                 android:id="@+id/btnLast2Weeks"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Últimas 2 semanas"/>
-            <com.google.android.material.button.MaterialButton
-                style="?attr/materialButtonOutlinedStyle"
-                android:id="@+id/btnLastMonth"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Último mes"/>
-        </com.google.android.material.button.MaterialButtonToggleGroup>
+                android:text="Últimas 2 semanas" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLastMonth"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Último mes" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
         <!-- BOTÓN BUSCAR -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnBuscar"

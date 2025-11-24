@@ -1,14 +1,21 @@
 package com.example.comfyapp
 
+import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.comfyapp.databinding.SelectNewProductBinding
 import java.math.BigDecimal
 import java.math.RoundingMode
+import com.robotemi.sdk.Robot
+
 
 class SelectNewProductActivity : AppCompatActivity() {
 
@@ -20,6 +27,37 @@ class SelectNewProductActivity : AppCompatActivity() {
         "Mates marmolizados Corona" to listOf(377, 374),
         "Fachadas porcelanato" to listOf(2438)
     )
+    private val zonaToTemiLocation = mapOf(
+        "Pisos tipo madera" to "pisos tipo madera",       // nombre del punto de Temi
+        "Mates marmolizados Corona" to "mates marmolizados corona",
+        "Fachadas porcelanato" to "fachadas porcelanatos"
+    )
+    private var lastTemiLocation: String? = null
+
+    fun AppCompatActivity.showCustomToast(message: String, duration: Int = Toast.LENGTH_LONG) {
+        val toast = Toast(this)
+        toast.duration = duration
+
+        // Crear un TextView con estilo personalizado
+        val textView = TextView(this)
+        textView.text = message
+        textView.textSize = 25f  // tamaño en sp
+        textView.setPadding(20, 10, 20, 10)
+        textView.setTextColor(Color.WHITE)
+        textView.gravity = Gravity.CENTER
+
+        // Fondo con color y bordes redondeados
+        val background = GradientDrawable()
+        background.shape = GradientDrawable.RECTANGLE
+        background.cornerRadius = 0f
+        background.setColor(0xFFE9630B.toInt())
+        textView.background = background
+
+        toast.view = textView
+        toast.show()
+    }
+
+
 
     private fun getSelectedDateRange(): Pair<String, String>? {
         val selectedId = binding.toggleButton.checkedButtonId
@@ -57,21 +95,41 @@ class SelectNewProductActivity : AppCompatActivity() {
             val categoryIds = zonaToCategoryIds[zonaSeleccionada]
 
             if (categoryIds.isNullOrEmpty()) {
-                Toast.makeText(this, "Seleccione una zona válida", Toast.LENGTH_SHORT).show()
+                showCustomToast("Seleccione una zona válida")
                 return@setOnClickListener
             }
 
             val dateRange = getSelectedDateRange()
             if (dateRange == null) {
-                Toast.makeText(this, "Seleccione un rango de fechas", Toast.LENGTH_SHORT).show()
+
+                showCustomToast("Seleccione un rango de fechas")
+
                 return@setOnClickListener
             }
+            // ✅ Mover Temi a la zona seleccionada
+            loadProductsWithLastEntry(categoryIds, dateRange, onMovementsFetched = { hasMovements ->
+                if (hasMovements) {
+                    // Solo mover Temi si hay movimientos y si no está ya allí
+                    val locationName = zonaToTemiLocation[zonaSeleccionada]
+                    Log.d("TEMI_MOVE", "Intentando mover a: $locationName")
+                    if (locationName != null && lastTemiLocation != locationName) {
+                        try {
+                            val robot = Robot.getInstance()
+                            robot.goTo(locationName)
+                            Toast.makeText(this, "Moviéndose a $locationName", Toast.LENGTH_SHORT).show()
+                            lastTemiLocation = locationName
+                        } catch (e: Exception) {
+                            Log.e("TEMI_MOVE", "Error moviendo Temi: ${e.message}")
+                        }
+                    }
+                }
+            })
 
-            loadProductsWithLastEntry(categoryIds, dateRange)
+
         }
     }
 
-    private fun loadProductsWithLastEntry(categoryIds: List<Int>, dateRange: Pair<String, String>) {
+    private fun loadProductsWithLastEntry(categoryIds: List<Int>, dateRange: Pair<String, String>, onMovementsFetched: (hasMovements: Boolean) -> Unit) {
         showLoading(true)
 
         // 1️⃣ Traer movimientos de entrada hechos (incoming done) en el rango de fecha
@@ -118,14 +176,18 @@ class SelectNewProductActivity : AppCompatActivity() {
                 if (resultMoves.isEmpty()) {
                     runOnUiThread {
                         showLoading(false)
-                        Toast.makeText(
-                            this@SelectNewProductActivity,
-                            "No se encontraron movimientos de entrada",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        showCustomToast("No se encontraron movimientos de entrada para esa fecha")
+                        // Limpiar el fragment container
+                        supportFragmentManager.beginTransaction()
+                            .replace(R.id.fragmentContainer2, BlankFragment())
+                            .commit()
                     }
+                    onMovementsFetched(false)
                     return@executeOdooRpc
                 }
+
+                // ✅ Notificar que SÍ hay movimientos (para que Temi se mueva)
+                onMovementsFetched(true)
 
                 // Extraer IDs únicos de productos
                 val productIds = resultMoves.map {
@@ -235,6 +297,8 @@ class SelectNewProductActivity : AppCompatActivity() {
             }
         )
     }
+    class BlankFragment : androidx.fragment.app.Fragment(R.layout.fragment_blank)
+
 
     private fun showLoading(show: Boolean) {
         binding.fragmentContainer2.visibility = if (show) View.INVISIBLE else View.VISIBLE
