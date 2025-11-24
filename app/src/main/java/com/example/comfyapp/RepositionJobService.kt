@@ -2,9 +2,7 @@ package com.example.comfyapp
 
 import android.app.job.JobParameters
 import android.app.job.JobService
-import android.service.chooser.AdditionalContentContract.MethodNames
 import android.util.Log
-import com.google.gson.JsonArray
 import com.robotemi.sdk.Robot
 import com.robotemi.sdk.TtsRequest
 
@@ -54,6 +52,8 @@ class RepositionJobService : JobService() {
             "search_read",
             domain = domainEnded,
             fields = mapOf("product_id" to true),
+            order = "write_date desc",
+            limit = 5000,
             onSuccess = { ended ->
 
                 val endedNames = mutableSetOf<String>()
@@ -72,6 +72,8 @@ class RepositionJobService : JobService() {
                     "search_read",
                     domain = domainArrived,
                     fields = mapOf("product_id" to true),
+                    order = "date desc",
+                    limit = 5000,
                     onSuccess = { arrived ->
 
                         val arrivedMap = linkedMapOf<String, Double>()
@@ -89,44 +91,46 @@ class RepositionJobService : JobService() {
                             listOf("write_date", ">=", yesterday)
                         )
 
-                    OdooHelper.executeOdooRpc(
-                        "product.product",
-                        "search_read",
-                        domain = domainPriceChange,
-                        fields = mapOf("name" to true, "list_price" to true),
-                        onSuccess = { changes ->
-                            val nf = java.text.NumberFormat.getCurrencyInstance(java.util.Locale("es", "co"))
-                            val changeList = mutableListOf<String>()
-                            changes.forEach { el ->
-                                val row = el.asJsonObject
-                                val name = row.get("name")?.asString ?: return@forEach
-                                val price = row.get("list_price")?.asDouble ?: 0.0
-                                changeList.add("$name (${nf.format(price)})")
-                            }
+                        OdooHelper.executeOdooRpc(
+                            "product.product",
+                            "search_read",
+                            domain = domainPriceChange,
+                            fields = mapOf("name" to true, "list_price" to true),
+                            order = "write_date desc",
+                            limit = 5000,
+                            onSuccess = { changes ->
+                                val nf = java.text.NumberFormat.getCurrencyInstance(java.util.Locale("es", "co"))
+                                val changeList = mutableListOf<String>()
+                                changes.forEach { el ->
+                                    val row = el.asJsonObject
+                                    val name = row.get("name")?.asString ?: return@forEach
+                                    val price = row.get("list_price")?.asDouble ?: 0.0
+                                    changeList.add("$name (${nf.format(price)})")
+                                }
 
-                            Robot.getInstance().speak(TtsRequest.create("Resumen de reposición", false))
-                            speakList("Acabados para quitar", endedNames.toList())
-                            speakList("Llegados para exhibir", arrivedList)
-                            speakList("Con cambio de precio", changeList)
+                                Robot.getInstance().speak(TtsRequest.create("Resumen de reposición", false))
+                                speakList("Acabados para quitar", endedNames.toList())
+                                speakList("Llegados para exhibir", arrivedList)
+                                speakList("Con cambio de precio", changeList)
 
-                            jobFinished(params, false)
-                        },
-                        onError = { e ->
-                            Log.e("Reposition", e)
-                            jobFinished(params, false)
-                        })
+                                jobFinished(params, false)
+                            },
+                            onError = { e ->
+                                Log.e("Reposition", e)
+                                jobFinished(params, false)
+                            })
                     },
                     onError = { e ->
                         Log.e("Reposition", e)
                         jobFinished(params, false)
                     })
-                },
-                onError = { e ->
-                    Log.e("Reposition", e)
-                    jobFinished(params, false)
-                })
-                return true
-            }
+            },
+            onError = { e ->
+                Log.e("Reposition", e)
+                jobFinished(params, false)
+            })
+        return true
+    }
 
     override fun onStopJob(params: JobParameters?): Boolean {
         return false

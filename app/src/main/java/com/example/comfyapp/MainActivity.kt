@@ -9,12 +9,12 @@ import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.comfyapp.databinding.ActivityMainBinding
-import com.google.gson.JsonArray
 import com.robotemi.sdk.Robot
 import com.robotemi.sdk.TtsRequest
+import java.math.BigDecimal
+import java.math.RoundingMode
 
 class MainActivity : AppCompatActivity(), Robot.TtsListener {
 
@@ -123,6 +123,8 @@ class MainActivity : AppCompatActivity(), Robot.TtsListener {
             "search_read",
             domain,
             fields = fields,
+            order = "name asc",
+            limit = 1000,
             onSuccess = { results ->
 
                 val products = mutableListOf<Product>()
@@ -139,7 +141,9 @@ class MainActivity : AppCompatActivity(), Robot.TtsListener {
                                 name = obj.get("name").asString,
                                 price = obj.get("list_price").asDouble,
                                 imageBase64 = obj.get("image_1920")?.asString,
-                                stock = stock,
+                                stock = BigDecimal(stock)
+                                    .setScale(2, RoundingMode.HALF_UP)
+                                    .toDouble(),
                                 description = obj.get("description_sale")?.asString
                             )
                         )
@@ -172,6 +176,8 @@ class MainActivity : AppCompatActivity(), Robot.TtsListener {
             "search_read",
             domain,
             fields = mapOf("quantity" to true),
+            order = "id asc",
+            limit = 100,
             onSuccess = { results ->
                 val stock = if (results.size() > 0)
                     results[0].asJsonObject.get("quantity").asInt
