@@ -7,6 +7,8 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.comfyapp.databinding.SelectNewProductBinding
+import java.math.BigDecimal
+import java.math.RoundingMode
 
 class SelectNewProductActivity : AppCompatActivity() {
 
@@ -15,14 +17,15 @@ class SelectNewProductActivity : AppCompatActivity() {
     // ✅ Mapa de zonas a IDs de Odoo
     private val zonaToCategoryIds = mapOf(
         "Pisos tipo madera" to listOf(376),
-        "Mates marmolizados Corona" to listOf(377, 372)
+        "Mates marmolizados Corona" to listOf(377, 374),
+        "Fachadas porcelanato" to listOf(2438)
     )
 
     private fun getSelectedDateRange(): Pair<String, String>? {
         val selectedId = binding.toggleButton.checkedButtonId
         if (selectedId == View.NO_ID) return null
 
-        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         val today = java.time.LocalDate.now()
         val startDate: java.time.LocalDate = when (selectedId) {
             R.id.btnYesterday -> today.minusDays(1)
@@ -32,8 +35,8 @@ class SelectNewProductActivity : AppCompatActivity() {
             else -> today
         }
 
-        val start = startDate.format(formatter)
-        val end = today.format(formatter)
+        val start = startDate.atStartOfDay().format(formatter)
+        val end = today.atTime(23, 59, 59).format(formatter)
         return start to end
     }
 
@@ -71,31 +74,70 @@ class SelectNewProductActivity : AppCompatActivity() {
     private fun loadProductsWithLastEntry(categoryIds: List<Int>, dateRange: Pair<String, String>) {
         showLoading(true)
 
-        // 1️⃣ Traer productos con stock > 0 en Tunja/E
-        val domainStock = listOf(
-            listOf("location_id", "=", "Tunja/E"),
-            listOf("quantity", ">", 0)
+        // 1️⃣ Traer movimientos de entrada hechos (incoming done) en el rango de fecha
+        val domainMoves = buildList<Any> {
+            add(listOf("picking_type_id.code", "=", "incoming"))
+            add(listOf("state", "=", "done"))
+
+            // Agregar categorías con OR
+            if (categoryIds.size == 1) {
+                add(listOf("product_id.categ_id", "=", categoryIds[0]))
+            } else {
+                // Primero agregar el operador OR
+                for (i in 1 until categoryIds.size) {
+                    add("|")
+                }
+                // Luego agregar las condiciones
+                categoryIds.forEach { catId ->
+                    add(listOf("product_id.categ_id", "=", catId))
+                }
+            }
+
+            add(listOf("date", ">=", dateRange.first))
+            add(listOf("date", "<=", dateRange.second))
+            add(listOf("location_dest_id.complete_name", "=", "Tunja/Input"))
+        } as List<List<Any>>
+
+        val fieldsMoves = mapOf(
+            "product_id" to true,
+            "product_uom_qty" to true,
+            "reference" to true,
+            "date" to true,
+            "picking_id" to true,
+            "location_dest_id" to true
         )
-        val fieldsStock = mapOf("product_id" to true, "quantity" to true)
 
         OdooHelper.executeOdooRpc(
-            model = "stock.quant",
+            model = "stock.move",
             method = "search_read",
-            domain = domainStock,
-            fields = fieldsStock,
-            onSuccess = { resultStock ->
-                val productIds = resultStock.map { it.asJsonObject["product_id"].asJsonArray[0].asInt }
-
-                if (productIds.isEmpty()) {
-                    runOnUiThread { showLoading(false) }
+            domain = domainMoves,
+            fields = fieldsMoves,
+            order = "date desc",
+            limit = 9000,
+            onSuccess = { resultMoves ->
+                if (resultMoves.isEmpty()) {
+                    runOnUiThread {
+                        showLoading(false)
+                        Toast.makeText(
+                            this@SelectNewProductActivity,
+                            "No se encontraron movimientos de entrada",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                     return@executeOdooRpc
                 }
 
-                // 2️⃣ Traer info de producto
-                val domainProducts = listOf(
+                // Extraer IDs únicos de productos
+                val productIds = resultMoves.map {
+                    it.asJsonObject["product_id"].asJsonArray[0].asInt
+                }.distinct()
+
+                // 2️⃣ Verificar cuáles de esos productos tienen stock > 0
+                val domainStock = listOf(
                     listOf("id", "in", productIds),
-                    listOf("categ_id", "in", categoryIds)
+                    listOf("qty_available", ">", 0)
                 )
+
                 val fieldsProducts = mapOf(
                     "id" to true,
                     "name" to true,
@@ -108,10 +150,12 @@ class SelectNewProductActivity : AppCompatActivity() {
                 OdooHelper.executeOdooRpc(
                     model = "product.product",
                     method = "search_read",
-                    domain = domainProducts,
+                    domain = domainStock,
                     fields = fieldsProducts,
+                    order = "name asc",
+                    limit = 5000,
                     onSuccess = { resultProducts ->
-                        val products = resultProducts.mapNotNull { elem ->
+                        val productsWithStock = resultProducts.mapNotNull { elem ->
                             try {
                                 val obj = elem.asJsonObject
                                 Product(
@@ -119,95 +163,74 @@ class SelectNewProductActivity : AppCompatActivity() {
                                     name = obj["name"].asString,
                                     price = obj["list_price"].asDouble,
                                     imageBase64 = obj["image_128"]?.asString,
-                                    stock = obj["qty_available"].asInt,
+                                    stock = BigDecimal(obj["qty_available"].asDouble)
+                                        .setScale(2, RoundingMode.HALF_UP)
+                                        .toDouble(),
                                     description = obj["description"]?.asString,
                                     lastEntryQty = 0.0,
                                     lastEntryDate = ""
                                 )
                             } catch (e: Exception) {
-                                Log.e("ODDO_PARSE", "Error parseando producto: ${e.message}")
+                                Log.e("ODOO_PARSE", "Error parseando producto: ${e.message}")
                                 null
                             }
                         }
 
-                        // 3️⃣ Traer la última entrada done de cada producto
-                        val domainMoves = listOf(
-                            listOf("state", "=", "done"),
-                            listOf("product_id", "in", productIds),
-                            listOf("location_dest_id", "=", "Tunja/E"),
-                            listOf("date", ">=", dateRange.first),
-                            listOf("date", "<=", dateRange.second)
-                        )
-                        val fieldsMoves = mapOf("product_id" to true, "product_uom_qty" to true, "date" to true)
-
-                        OdooHelper.executeOdooRpc(
-                            model = "stock.move",
-                            method = "search_read",
-                            domain = domainMoves,
-                            fields = fieldsMoves,
-                            onSuccess = { resultMoves ->
-                                val lastMovesMap = resultMoves.groupBy { it.asJsonObject["product_id"].asJsonArray[0].asInt }
-                                    .mapValues { entry ->
-                                        entry.value.maxByOrNull { it.asJsonObject["date"].asString }?.asJsonObject
-                                    }
-
-                                // Asignar la última entrada
-                                products.forEach { p ->
-                                    lastMovesMap[p.id]?.let { move ->
-                                        p.lastEntryQty = move["product_uom_qty"].asDouble
-                                        p.lastEntryDate = move["date"].asString
-                                    }
-                                }
-
-                                // ✅ Filtrar solo productos con última entrada en la fecha seleccionada
-                                val filteredProducts = products.filter { it.lastEntryDate.isNotEmpty() }
-
-                                runOnUiThread {
-                                    showLoading(false)
-                                    if (filteredProducts.isEmpty()) {
-                                        Toast.makeText(
-                                            this@SelectNewProductActivity,
-                                            "No se encontraron productos",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-
-                                    supportFragmentManager.beginTransaction()
-                                        .replace(
-                                            R.id.fragmentContainer2,
-                                            ProductListFragment.newInstance(filteredProducts)
-                                        )
-                                        .commit()
-                                }
-                            },
-                            onError = { errMoves ->
-                                runOnUiThread {
-                                    showLoading(false)
-                                    Toast.makeText(
-                                        this@SelectNewProductActivity,
-                                        "Error cargando entradas: $errMoves",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
+                        // Agrupar movimientos por producto y obtener el más reciente
+                        val lastMovesMap = resultMoves
+                            .groupBy { it.asJsonObject["product_id"].asJsonArray[0].asInt }
+                            .mapValues { entry ->
+                                entry.value.maxByOrNull {
+                                    it.asJsonObject["date"].asString
+                                }?.asJsonObject
                             }
-                        )
+
+                        // Asignar la última entrada solo a productos con stock
+                        productsWithStock.forEach { p ->
+                            lastMovesMap[p.id]?.let { move ->
+                                p.lastEntryQty = move["product_uom_qty"].asDouble
+                                p.lastEntryDate = move["date"].asString
+                            }
+                        }
+
+                        runOnUiThread {
+                            showLoading(false)
+                            if (productsWithStock.isEmpty()) {
+                                Toast.makeText(
+                                    this@SelectNewProductActivity,
+                                    "No se encontraron productos con stock",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+
+                            supportFragmentManager.beginTransaction()
+                                .replace(
+                                    R.id.fragmentContainer2,
+                                    ProductListFragment.newInstance(productsWithStock)
+                                )
+                                .commit()
+                        }
                     },
                     onError = { errProducts ->
                         runOnUiThread {
                             showLoading(false)
                             Toast.makeText(
                                 this@SelectNewProductActivity,
-                                "Error cargando productos: $errProducts",
+                                "Error verificando stock: $errProducts",
                                 Toast.LENGTH_LONG
                             ).show()
                         }
                     }
                 )
             },
-            onError = { errStock ->
+            onError = { errMoves ->
                 runOnUiThread {
                     showLoading(false)
-                    Toast.makeText(this@SelectNewProductActivity, "Error cargando stock: $errStock", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@SelectNewProductActivity,
+                        "Error cargando entradas: $errMoves",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         )
