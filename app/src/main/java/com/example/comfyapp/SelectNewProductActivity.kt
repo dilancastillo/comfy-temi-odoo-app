@@ -15,11 +15,15 @@ import com.example.comfyapp.databinding.SelectNewProductBinding
 import java.math.BigDecimal
 import java.math.RoundingMode
 import com.robotemi.sdk.Robot
+import com.robotemi.sdk.TtsRequest
+
 
 
 class SelectNewProductActivity : AppCompatActivity() {
 
     private lateinit var binding: SelectNewProductBinding
+    private val robot: Robot by lazy { Robot.getInstance() }
+
 
     // ✅ Mapa de zonas a IDs de Odoo
     private val zonaToCategoryIds = mapOf(
@@ -115,8 +119,13 @@ class SelectNewProductActivity : AppCompatActivity() {
                     if (locationName != null && lastTemiLocation != locationName) {
                         try {
                             val robot = Robot.getInstance()
+
+                            runOnUiThread {
+                                robot.speak(TtsRequest.create("Moviéndome a $locationName", true))
+                            }
                             robot.goTo(locationName)
-                            Toast.makeText(this, "Moviéndose a $locationName", Toast.LENGTH_SHORT).show()
+                            showCustomToast("Moviéndose a $locationName")
+                            Log.d("==TEMI_MOVE", "que sale: $locationName")
                             lastTemiLocation = locationName
                         } catch (e: Exception) {
                             Log.e("TEMI_MOVE", "Error moviendo Temi: ${e.message}")
