@@ -103,6 +103,7 @@ class MainActivity : AppCompatActivity(), Robot.TtsListener {
         speechRecognizer.startListening(intent)
     }
 
+
     private fun filterProducts(category: String) {
         val categoryId = categoryMap[category] ?: return
 
@@ -117,6 +118,8 @@ class MainActivity : AppCompatActivity(), Robot.TtsListener {
         Log.e("ODDO-DEBUG", "Enviando petición a Odoo: product.product.search_read")
         Log.e("ODDO-DEBUG", "Domain: $domain")
         Log.e("ODDO-DEBUG", "Fields: $fields")
+
+
 
         OdooHelper.executeOdooRpc(
             "product.product",
@@ -218,6 +221,14 @@ class MainActivity : AppCompatActivity(), Robot.TtsListener {
         scheduler.schedule(jobInfo)
     }
 
+    override fun onResume() {
+        super.onResume()
+        try {
+            startLockTask()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
     override fun onStart() {
         super.onStart()
         robot.addTtsListener(this)
