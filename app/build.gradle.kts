@@ -59,5 +59,8 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
     implementation("com.google.android.material:material:1.12.0")
+    // MQTT Eclipse Paho
+    implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
+    implementation("org.eclipse.paho:org.eclipse.paho.android.service:1.1.1")
 
 }

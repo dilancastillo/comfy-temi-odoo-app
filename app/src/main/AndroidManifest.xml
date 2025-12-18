@@ -2,11 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Permisos de red para MQTT -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="com.robotemi.permission.USE_ROBOT"/>
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+
+    <!-- Permisos de Temi -->
+    <uses-permission android:name="com.robotemi.permission.USE_ROBOT"/>
+    <uses-permission android:name="com.robotemi.permission.MAP" />
+    <uses-permission android:name="com.robotemi.permission.NAVIGATION" />
+    <uses-permission android:name="com.robotemi.permission.SEQUENCE" />
+    <uses-permission android:name="com.robotemi.permission.SETTINGS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
     <application
         android:allowBackup="true"
@@ -16,29 +25,55 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.ComfyApp">
+        android:theme="@style/Theme.ComfyApp"
+        android:usesCleartextTraffic="true">
+
+        <!-- Metadata para permisos de Temi -->
+        <meta-data
+            android:name="@string/metadata_permissions"
+            android:value="com.robotemi.permission.sequence,com.robotemi.permission.map,com.robotemi.permission.settings,com.robotemi.permission.navigation" />
+
+        <!-- Metadata para configurar como Skill de Temi -->
+        <meta-data
+            android:name="com.robotemi.sdk.metadata.SKILL"
+            android:value="@string/app_name" />
 
         <activity
             android:name=".CoverActivity"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Intent filter para botón Home de Temi -->
+            <intent-filter>
+                <action android:name="com.robotemi.intent.action.HOME_BUTTON_DOWN" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".NewProductsActivity"
+            android:screenOrientation="landscape" />
 
-        <activity android:name="NewProductsActivity" />
-        <activity android:name="SelectNewProductActivity"/>
+        <activity
+            android:name=".SelectNewProductActivity"
+            android:screenOrientation="landscape"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:lockTaskMode="if_whitelisted">
+            android:screenOrientation="landscape">
         </activity>
 
-
+        <!-- Servicio MQTT para background -->
+        <service
+            android:name="org.eclipse.paho.android.service.MqttService"
+            android:exported="false" />
 
         <service
             android:name=".RepositionJobService"
