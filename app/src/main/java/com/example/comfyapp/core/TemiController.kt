@@ -18,6 +18,10 @@ class TemiController(
     private val robot: Robot = Robot.getInstance()
     private val handler = Handler(Looper.getMainLooper())
     private var robotReady = false
+    var last_location: String? = null
+        private set
+    var executeSequences = true
+
 
     companion object {
         private const val TAG = "TemiController"
@@ -64,26 +68,39 @@ class TemiController(
         Log.d(TAG, "GoTo $location → $status")
 
         if (status == "complete") {
-            handler.postDelayed({
-                ejecutarSequence(location)
-            }, 1500)
+            last_location = location
+            if (!executeSequences) return // si es false, no hace nada más
+
+            val sequenceName = when {
+                last_location?.contains("coworking", ignoreCase = true) == true -> "promociones"
+                last_location?.contains("punto2", ignoreCase = true) == true -> "promociones"
+                last_location?.contains("pisos tipo madera", ignoreCase = true) == true -> "promociones"
+                else -> null
+            }
+
+            sequenceName?.let { seq ->
+                handler.postDelayed({
+                    ejecutarSequence(seq)
+                }, 1)
+            }
+
         }
     }
 
-    private fun ejecutarSequence(location: String) {
+    private fun ejecutarSequence(sequenceName: String) {
         try {
-            robot.speak(TtsRequest.create("He llegado a $location", true))
+            robot.speak(TtsRequest.create("He llegado a $last_location", true))
 
-            val sequenceName = "promociones"
+
             val sequence = robot.getAllSequences()
                 ?.firstOrNull { it.name.equals(sequenceName, true) }
 
             if (sequence == null) {
-                toast("Sequence promociones no encontrada")
+                toast("Sequence '${sequenceName}' no encontrada")
                 return
             }
 
-            Log.i(TAG, "▶️ Ejecutando sequence ${sequence.name}")
+            Log.i(TAG, "Ejecutando sequence ${sequence.name}")
 
             robot.playSequence(
                 sequence.id,

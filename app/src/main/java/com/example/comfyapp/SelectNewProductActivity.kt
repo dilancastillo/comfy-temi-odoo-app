@@ -11,6 +11,7 @@ import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.comfyapp.core.TemiController
 import com.example.comfyapp.databinding.SelectNewProductBinding
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -22,6 +23,7 @@ import com.robotemi.sdk.TtsRequest
 class SelectNewProductActivity : AppCompatActivity() {
 
     private lateinit var binding: SelectNewProductBinding
+    private lateinit var temiController: TemiController
     private val robot: Robot by lazy { Robot.getInstance() }
 
 
@@ -83,9 +85,16 @@ class SelectNewProductActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+
         super.onCreate(savedInstanceState)
         binding = SelectNewProductBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        temiController = TemiController(
+            context = this,
+            onStatus = { status -> Log.d("TEMI", status) }
+        )
+        temiController.start()
 
         binding.imgbtnback.setOnClickListener { finish() }
 
@@ -118,15 +127,18 @@ class SelectNewProductActivity : AppCompatActivity() {
                     Log.d("TEMI_MOVE", "Intentando mover a: $locationName")
                     if (locationName != null && lastTemiLocation != locationName) {
                         try {
+
                             val robot = Robot.getInstance()
 
                             runOnUiThread {
                                 robot.speak(TtsRequest.create("Moviéndome a $locationName", true))
                             }
+                            temiController.executeSequences = false
                             robot.goTo(locationName)
                             showCustomToast("Moviéndose a $locationName")
                             Log.d("==TEMI_MOVE", "que sale: $locationName")
                             lastTemiLocation = locationName
+
                         } catch (e: Exception) {
                             Log.e("TEMI_MOVE", "Error moviendo Temi: ${e.message}")
                         }
