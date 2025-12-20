@@ -55,7 +55,6 @@ class TemiController(
             return
         }
 
-        robot.speak(TtsRequest.create("Voy hacia $target", false))
         robot.goTo(target)
     }
 
@@ -68,13 +67,14 @@ class TemiController(
         Log.d(TAG, "GoTo $location → $status")
 
         if (status == "complete") {
+            robot.cancelAllTtsRequests()
             last_location = location
             if (!executeSequences) return // si es false, no hace nada más
 
             val sequenceName = when {
-                last_location?.contains("coworking", ignoreCase = true) == true -> "promociones"
-                last_location?.contains("punto2", ignoreCase = true) == true -> "promociones"
-                last_location?.contains("pisos tipo madera", ignoreCase = true) == true -> "promociones"
+                last_location?.contains("home base", ignoreCase = true) == true -> "promociones"
+                last_location?.contains("promococina", ignoreCase = true) == true -> "promociones"
+                last_location?.contains("fachadas porcelanatos", ignoreCase = true) == true -> "promociones"
                 else -> null
             }
 
@@ -89,7 +89,6 @@ class TemiController(
 
     private fun ejecutarSequence(sequenceName: String) {
         try {
-            robot.speak(TtsRequest.create("He llegado a $last_location", true))
 
 
             val sequence = robot.getAllSequences()
@@ -101,6 +100,7 @@ class TemiController(
             }
 
             Log.i(TAG, "Ejecutando sequence ${sequence.name}")
+            robot.cancelAllTtsRequests()
 
             robot.playSequence(
                 sequence.id,

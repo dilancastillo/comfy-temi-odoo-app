@@ -27,7 +27,7 @@ class SelectNewProductActivity : AppCompatActivity() {
     private val robot: Robot by lazy { Robot.getInstance() }
 
 
-    // ✅ Mapa de zonas a IDs de Odoo
+    // Mapa de zonas a IDs de Odoo
     private val zonaToCategoryIds = mapOf(
         "Pisos tipo madera" to listOf(376),
         "Mates marmolizados Corona" to listOf(377, 374),
@@ -119,7 +119,7 @@ class SelectNewProductActivity : AppCompatActivity() {
 
                 return@setOnClickListener
             }
-            // ✅ Mover Temi a la zona seleccionada
+            // Mover Temi a la zona seleccionada
             loadProductsWithLastEntry(categoryIds, dateRange, onMovementsFetched = { hasMovements ->
                 if (hasMovements) {
                     // Solo mover Temi si hay movimientos y si no está ya allí
@@ -130,10 +130,11 @@ class SelectNewProductActivity : AppCompatActivity() {
 
                             val robot = Robot.getInstance()
 
+                            temiController.executeSequences = false
                             runOnUiThread {
                                 robot.speak(TtsRequest.create("Moviéndome a $locationName", true))
+
                             }
-                            temiController.executeSequences = false
                             robot.goTo(locationName)
                             showCustomToast("Moviéndose a $locationName")
                             Log.d("==TEMI_MOVE", "que sale: $locationName")
