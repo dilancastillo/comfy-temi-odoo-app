@@ -25,9 +25,11 @@
         android:theme="@style/Theme.ComfyApp"
         android:usesCleartextTraffic="true">
         <activity
-            android:name=".SelectPromoActivity"
+            android:name=".PromotionsActivity"
             android:exported="false" />
-        <!-- Metadata para permisos de Temi -->
+        <activity
+            android:name=".SelectPromoActivity"
+            android:exported="false" /> <!-- Metadata para permisos de Temi -->
         <meta-data
             android:name="@string/metadata_permissions"
             android:value="com.robotemi.permission.sequence,com.robotemi.permission.map,com.robotemi.permission.settings,com.robotemi.permission.navigation" /> <!-- Metadata para configurar como Skill de Temi -->

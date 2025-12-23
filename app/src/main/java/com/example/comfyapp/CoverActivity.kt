@@ -57,7 +57,7 @@ class CoverActivity : AppCompatActivity() {
             startActivity(Intent(this, NewProductsActivity::class.java))
         }
         binding.btnpromotions.setOnClickListener {
-            startActivity(Intent(this, SelectPromoActivity::class.java))
+            startActivity(Intent(this, PromotionsActivity::class.java))
         }
 
         val btnBack = findViewById<ImageView>(R.id.imgbexit)
