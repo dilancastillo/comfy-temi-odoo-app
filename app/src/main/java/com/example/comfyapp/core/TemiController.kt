@@ -72,9 +72,9 @@ class TemiController(
             if (!executeSequences) return // si es false, no hace nada más
 
             val sequenceName = when {
-                last_location?.contains("home base", ignoreCase = true) == true -> "promociones"
                 last_location?.contains("promococina", ignoreCase = true) == true -> "promociones"
-                last_location?.contains("fachadas porcelanatos", ignoreCase = true) == true -> "promociones"
+                last_location?.contains("promorevestimientos", ignoreCase = true) == true -> "promorevestimientos"
+                last_location?.contains("promolavamanos", ignoreCase = true) == true -> "promolavamanos"
                 else -> null
             }
 

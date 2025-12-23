@@ -49,12 +49,15 @@ class CoverActivity : AppCompatActivity() {
         // Iniciar Temi
         temiController.start()
 
-        binding.btnEmpezar.setOnClickListener {
+        /*binding.btnEmpezar.setOnClickListener {
             startActivity(Intent(this, MainActivity::class.java))
-        }
+        }*/
 
         binding.btnNewProducts.setOnClickListener {
             startActivity(Intent(this, NewProductsActivity::class.java))
+        }
+        binding.btnpromotions.setOnClickListener {
+            startActivity(Intent(this, SelectPromoActivity::class.java))
         }
 
         val btnBack = findViewById<ImageView>(R.id.imgbexit)

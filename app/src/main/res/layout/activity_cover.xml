@@ -4,14 +4,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="100dp"
+    android:layout_marginTop="10dp"
     android:background="@color/background">
 
     <!-- ICONO REGRESAR -->
     <ImageView
         android:id="@+id/imgbexit"
-        android:layout_width="25dp"
-        android:layout_height="25dp"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
         android:src="@drawable/close"
         android:contentDescription="Regresar"
         android:clickable="true"
@@ -55,17 +55,15 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/btnNew_products"
             android:layout_width="0dp"
-            android:layout_height="180dp"
+            android:layout_height="250dp"
             android:layout_columnWeight="1"
             android:layout_margin="10dp"
             android:clickable="true"
             android:foreground="?attr/selectableItemBackground"
             app:cardCornerRadius="14dp"
-
-            app:cardElevation="0dp"
-            app:strokeWidth="2dp"
-            app:strokeColor="@color/primary"
-            app:cardBackgroundColor="@android:color/transparent">
+            app:cardElevation="5dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@color/card_bg_selector">
 
 
             <LinearLayout
@@ -83,7 +81,8 @@
                     android:layout_width="103dp"
                     android:layout_height="103dp"
                     android:layout_gravity="center_horizontal"
-                    android:src="@drawable/producto" />
+                    android:src="@drawable/producto"
+                    app:tint="@color/icon_content_selector"/>
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -91,7 +90,8 @@
                     android:layout_marginTop="8dp"
                     android:gravity="center_horizontal"
                     android:text="Nuevas entradas"
-                    android:textSize="20sp" />
+                    android:textSize="25sp"
+                    android:textColor="@color/text_content_selector"/>
 
                 <View
                     android:layout_width="1dp"
@@ -105,16 +105,15 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card2"
             android:layout_width="0dp"
-            android:layout_height="180dp"
+            android:layout_height="250dp"
             android:layout_columnWeight="1"
             android:layout_margin="10dp"
             android:clickable="true"
             android:foreground="?attr/selectableItemBackground"
             app:cardCornerRadius="14dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="2dp"
-            app:strokeColor="@color/primary"
-            app:cardBackgroundColor="@android:color/transparent">
+            app:cardElevation="5dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@color/card_bg_selector">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -131,7 +130,8 @@
                     android:layout_width="103dp"
                     android:layout_height="103dp"
                     android:layout_gravity="center_horizontal"
-                    android:src="@drawable/agotado" />
+                    android:src="@drawable/agotado"
+                    app:tint="@color/icon_content_selector"/>
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -139,7 +139,8 @@
                     android:layout_marginTop="8dp"
                     android:gravity="center_horizontal"
                     android:text="Productos Agotados"
-                    android:textSize="20sp" />
+                    android:textSize="25sp"
+                    android:textColor="@color/text_content_selector"/>
 
                 <View
                     android:layout_width="1dp"
@@ -151,18 +152,17 @@
 
         <!-- CARD 3 -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/btnEmpezar"
+            android:id="@+id/btnpromotions"
             android:layout_width="0dp"
-            android:layout_height="180dp"
+            android:layout_height="250dp"
             android:layout_columnWeight="1"
             android:layout_margin="10dp"
             android:clickable="true"
             android:foreground="?attr/selectableItemBackground"
             app:cardCornerRadius="14dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="2dp"
-            app:strokeColor="@color/primary"
-            app:cardBackgroundColor="@android:color/transparent">
+            app:cardElevation="5dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@color/card_bg_selector">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -179,15 +179,17 @@
                     android:layout_width="103dp"
                     android:layout_height="103dp"
                     android:layout_gravity="center_horizontal"
-                    android:src="@drawable/actualizar" />
+                    android:src="@drawable/icon_promo"
+                    app:tint="@color/icon_content_selector"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:gravity="center_horizontal"
-                    android:text="Precios Nuevos"
-                    android:textSize="20sp" />
+                    android:text="Promociones"
+                    android:textSize="25sp"
+                    android:textColor="@color/text_content_selector"/>
 
                 <View
                     android:layout_width="1dp"
@@ -201,16 +203,15 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card4"
             android:layout_width="0dp"
-            android:layout_height="180dp"
+            android:layout_height="250dp"
             android:layout_columnWeight="1"
             android:layout_margin="10dp"
             android:clickable="true"
             android:foreground="?attr/selectableItemBackground"
             app:cardCornerRadius="14dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="2dp"
-            app:strokeColor="@color/primary"
-            app:cardBackgroundColor="@android:color/transparent">
+            app:cardElevation="5dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@color/card_bg_selector">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -227,7 +228,8 @@
                     android:layout_width="103dp"
                     android:layout_height="103dp"
                     android:layout_gravity="center_horizontal"
-                    android:src="@drawable/escritura" />
+                    android:src="@drawable/escritura"
+                    app:tint="@color/icon_content_selector"/>
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -235,7 +237,8 @@
                     android:layout_marginTop="8dp"
                     android:gravity="center_horizontal"
                     android:text="Revisión de Info"
-                    android:textSize="20sp" />
+                    android:textSize="25sp"
+                    android:textColor="@color/text_content_selector"/>
 
                 <View
                     android:layout_width="1dp"
