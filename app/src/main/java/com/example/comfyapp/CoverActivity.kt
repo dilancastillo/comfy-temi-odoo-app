@@ -10,6 +10,7 @@ import com.example.comfyapp.core.MqttController
 import com.example.comfyapp.core.TemiController
 import com.example.comfyapp.databinding.ActivityCoverBinding
 import com.robotemi.sdk.Robot
+import com.robotemi.sdk.TtsRequest
 import com.robotemi.sdk.permission.Permission
 
 class CoverActivity : AppCompatActivity() {
@@ -129,8 +130,22 @@ class CoverActivity : AppCompatActivity() {
         Log.i(TAG, "Ubicación recibida: $ubicacion")
         Toast.makeText(this, "Enviando robot a: $ubicacion", Toast.LENGTH_SHORT).show()
 
-        // Enviar el robot a la ubicación recibida
-        temiController.goToLocation(ubicacion)
+        if (ubicacion.equals("promorevestimientos")){
+            robot.speak(TtsRequest.create("¡Ven sígueme y te mostraré las promociones de revestimientos!", true))
+            temiController.goToLocation(ubicacion)
+        }
+        if (ubicacion.equals("promococina")){
+            robot.speak(TtsRequest.create("¡Ven sígueme y te mostraré las promociones de cocinas!", true))
+            temiController.goToLocation(ubicacion)
+        }
+        if (ubicacion.equals("promolavamanos")){
+            robot.speak(TtsRequest.create("¡Ven sígueme y te mostraré las promociones de lavamanos!", true))
+            temiController.goToLocation(ubicacion)
+        }
+        else{
+            temiController.goToLocation(ubicacion)
+        }
+
     }
 
     override fun onDestroy() {
