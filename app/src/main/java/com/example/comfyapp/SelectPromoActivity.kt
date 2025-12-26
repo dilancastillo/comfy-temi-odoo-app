@@ -14,7 +14,7 @@ class SelectPromoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         robot = Robot.getInstance()
-
+        robot.speak(TtsRequest.create("¡Hola!, Tenemos varias promociones especiales para ti. Selecciona una opción y descúbrelas."))
 
         binding = SelectPromoBinding.inflate(layoutInflater)
         setContentView(binding.root)

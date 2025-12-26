@@ -27,17 +27,18 @@
         android:src="@drawable/logo_comfer"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <TextView
         android:id="@+id/tituloMenu"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Promociones"
-        android:textSize="34sp"
+        android:text="¡Las mejores ofertas están aquí!"
+        android:textSize="40sp"
         android:textStyle="bold"
         android:gravity="center"
         android:textColor="@color/primary"
+        android:background="@color/primary_dark"
         app:layout_constraintTop_toBottomOf="@id/imgLogo"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -47,15 +48,16 @@
         android:id="@+id/subtituloMenu"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Selecciona una opción y gana una promoción"
-        android:textSize="25sp"
+        android:text="Selecciona una opción y aprovecha nuestras grandes promociones"
+        android:textSize="31sp"
         android:gravity="center"
-        android:textColor="@color/primary"
+        android:textColor="@color/white"
+        android:background="@color/primary_dark"
         app:layout_constraintTop_toBottomOf="@id/tituloMenu"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginTop="0dp"
+        android:paddingBottom="3dp"/>
 
     <GridLayout
         android:id="@+id/cardGrid"
@@ -66,7 +68,8 @@
         android:useDefaultMargins="true"
         app:layout_constraintTop_toBottomOf="@id/subtituloMenu"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="50dp">
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/icon_washbasinpromo"
@@ -120,9 +123,9 @@
 
                     <Button
                         android:id="@+id/tbnicon_washbasinpromo"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Ver más"
+                        android:layout_width="130dp"
+                        android:layout_height="50dp"
+                        android:text="Ir"
                         android:layout_marginTop="16dp"
                         android:background="@drawable/button_bg_selector"
                         android:textColor="@color/text_promo_selector"
@@ -188,9 +191,9 @@
 
                     <Button
                         android:id="@+id/btnfloortilepromo"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Ver más"
+                        android:layout_width="130dp"
+                        android:layout_height="50dp"
+                        android:text="Ir"
                         android:layout_marginTop="16dp"
                         android:background="@drawable/button_bg_selector"
                         android:textColor="@color/text_promo_selector"
@@ -254,9 +257,9 @@
 
                     <Button
                         android:id="@+id/btnkitchenpromo"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Ver más"
+                        android:layout_width="130dp"
+                        android:layout_height="50dp"
+                        android:text="Ir"
                         android:layout_marginTop="16dp"
                         android:background="@drawable/button_bg_selector"
                         android:textColor="@color/text_promo_selector"
@@ -277,8 +280,7 @@
         android:textSize="20sp"
         android:gravity="center"
         android:textColor="@color/primary_dark"
-        app:layout_constraintTop_toBottomOf="@+id/cardGrid"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="16dp"/>

@@ -33,7 +33,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:text="Ir a descuentos"
-        android:textSize="28dp"
+        android:textSize="45dp"
         android:elevation="2dp"
         android:translationZ="4dp"/>
 
