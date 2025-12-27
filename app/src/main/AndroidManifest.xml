@@ -25,6 +25,10 @@
         android:theme="@style/Theme.ComfyApp"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".WebViewActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"/>
+        <activity
             android:name=".PromotionsActivity"
             android:exported="false" />
         <activity

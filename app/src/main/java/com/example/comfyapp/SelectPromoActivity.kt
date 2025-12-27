@@ -5,6 +5,9 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.comfyapp.databinding.SelectPromoBinding
 import com.robotemi.sdk.Robot
 import com.robotemi.sdk.TtsRequest
+import android.content.Intent
+import android.net.Uri
+
 
 class SelectPromoActivity : AppCompatActivity() {
     private lateinit var binding: SelectPromoBinding
@@ -14,7 +17,7 @@ class SelectPromoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         robot = Robot.getInstance()
-        robot.speak(TtsRequest.create("¡Hola!, Tenemos varias promociones especiales para ti. Selecciona una opción y descúbrelas."))
+        robot.speak(TtsRequest.create("¡Hola!, Tenemos varias promociones especiales para ti. Selecciona una opción y descúbrelas.",false))
 
         binding = SelectPromoBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -35,6 +38,31 @@ class SelectPromoActivity : AppCompatActivity() {
             val sequenceName = "promolavamanos"
             robot.goTo(sequenceName)
         }
+        binding.imgWebsiteWashBasin.setOnClickListener {
+            val intent = Intent(this, WebViewActivity::class.java)
+            intent.putExtra(
+                WebViewActivity.EXTRA_URL,
+                "https://www.comfer.co/shop/category/promociones-descuentos-sanitarios-lavamanos-accesorios-202"
+            )
+            startActivity(intent)
+        }
+        binding.imgWebsiteFloortile.setOnClickListener {
+            val intent = Intent(this, WebViewActivity::class.java)
+            intent.putExtra(
+                WebViewActivity.EXTRA_URL,
+                "https://www.comfer.co/shop/category/promociones-ofertas-descuentos-pisos-paredes-201"
+            )
+            startActivity(intent)
+        }
+        binding.imgWebsiteKitchen.setOnClickListener {
+            val intent = Intent(this, WebViewActivity::class.java)
+            intent.putExtra(
+                WebViewActivity.EXTRA_URL,
+                "https://www.comfer.co/shop/category/muebles-para-cocina-integral-cocinas-integrales-prefabricadas-133"
+            )
+            startActivity(intent)
+        }
+
         binding.imgbtnback.setOnClickListener { finish() }
     }
 }
