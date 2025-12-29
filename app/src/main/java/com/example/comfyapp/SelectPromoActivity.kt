@@ -33,6 +33,7 @@ class SelectPromoActivity : AppCompatActivity() {
             val sequenceName = "promococina"
             robot.goTo(sequenceName)
         }
+
         binding.tbniconWashbasinpromo.setOnClickListener {
             robot.speak(TtsRequest.create("¡Ven sígueme y te mostraré las promociones de lavamanos!", true))
             val sequenceName = "promolavamanos"
@@ -44,14 +45,18 @@ class SelectPromoActivity : AppCompatActivity() {
                 WebViewActivity.EXTRA_URL,
                 "https://www.comfer.co/shop/category/promociones-descuentos-sanitarios-lavamanos-accesorios-202"
             )
+            intent.putExtra(WebViewActivity.EXTRA_ID, 202)
             startActivity(intent)
         }
+
+
         binding.imgWebsiteFloortile.setOnClickListener {
             val intent = Intent(this, WebViewActivity::class.java)
             intent.putExtra(
                 WebViewActivity.EXTRA_URL,
                 "https://www.comfer.co/shop/category/promociones-ofertas-descuentos-pisos-paredes-201"
             )
+            intent.putExtra(WebViewActivity.EXTRA_ID, 201)
             startActivity(intent)
         }
         binding.imgWebsiteKitchen.setOnClickListener {
@@ -60,6 +65,7 @@ class SelectPromoActivity : AppCompatActivity() {
                 WebViewActivity.EXTRA_URL,
                 "https://www.comfer.co/shop/category/muebles-para-cocina-integral-cocinas-integrales-prefabricadas-133"
             )
+            intent.putExtra(WebViewActivity.EXTRA_ID, 133)
             startActivity(intent)
         }
 
