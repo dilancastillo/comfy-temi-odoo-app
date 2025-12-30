@@ -50,7 +50,7 @@ class WebViewActivity : AppCompatActivity() {
             202 -> "¡Descubre nuestras promociones en Lavamanos! Explora los descuentos disponibles y encuentra el producto ideal para ti."
             201 -> "¡Descubre nuestras promociones en Revestimientos! Explora los descuentos disponibles y encuentra el producto ideal para ti."
             133 -> "¡Descubre nuestras promociones en Cocinas Integrales! Explora los descuentos disponibles y encuentra el producto ideal para ti"
-            else -> "¡Descubre nuestras promociones especiales! Explora los descuentos disponibles y encuentra el producto ideal para ti."
+            else -> "¡Descubre nuestras promociones especiales! Explora los descuentos disponibles y encuentra el producto ideal para ti. "
         }
 
         robot.speak(TtsRequest.create(message, false))

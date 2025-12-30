@@ -42,7 +42,7 @@ object OdooHelper {
     // ---------------------------------------------------------
     private val odooApi: OdooApi by lazy {
         Retrofit.Builder()
-            .baseUrl("https://comfer-staging-26743128.dev.odoo.com/")
+            .baseUrl("https://comfer-staging-26815322.dev.odoo.com/")
             .client(createUnsafeClient())
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -68,9 +68,9 @@ object OdooHelper {
             addProperty("method", "execute_kw")
 
             val args = JsonArray().apply {
-                add("comfer-staging-26743128")     // DB
+                add("comfer-staging-26815322")     // DB
                 add(2)                             // UID
-                add("92b52c82c068ea005794dcbf2ca82d6c49beed49") // API KEY
+                add("90ae36e9215221ac2ecb7de68b1381a6631ebea9") // API KEY
                 add(model)
                 add(method)
 
