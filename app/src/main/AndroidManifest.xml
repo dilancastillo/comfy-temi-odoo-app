@@ -25,9 +25,18 @@
         android:theme="@style/Theme.ComfyApp"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".TilesListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ProductsUserActivity"
+            android:exported="false" />
+        <activity
+            android:name=".HomeUserActivity"
+            android:exported="false" />
+        <activity
             android:name=".WebViewActivity"
             android:exported="false"
-            android:screenOrientation="landscape"/>
+            android:screenOrientation="landscape" />
         <activity
             android:name=".PromotionsActivity"
             android:exported="false" />
