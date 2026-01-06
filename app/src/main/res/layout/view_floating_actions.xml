@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <LinearLayout
+        android:id="@+id/floatingButtons"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="24dp">
+
+        <ImageButton
+            android:id="@+id/btnPromos"
+            android:layout_width="92dp"
+            android:layout_height="92dp"
+            android:src="@drawable/icon_promotionbtn"
+            android:background="@android:color/transparent"
+            android:scaleType="centerInside"
+            android:contentDescription="Promociones"
+            android:elevation="20dp"/>
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="16dp"/>
+
+        <ImageButton
+            android:id="@+id/btnHablar"
+            android:layout_width="92dp"
+            android:layout_height="92dp"
+            android:src="@drawable/icon_chatbot"
+            android:background="@android:color/transparent"
+            android:scaleType="centerInside"
+            android:contentDescription="Hablar"/>
+
+    </LinearLayout>
+
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

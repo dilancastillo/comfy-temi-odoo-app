@@ -19,6 +19,8 @@
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"/>
 
+
+
     <ScrollView
         android:id="@+id/scrollCards"
         android:layout_width="0dp"
@@ -315,4 +317,19 @@
     </GridLayout>
         </LinearLayout>
 </ScrollView>
+    <include
+        android:id="@+id/floatingMenu"
+        layout="@layout/view_floating_actions"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.5"
+        android:layout_marginEnd="24dp"/>
+
+
+    <VideoView
+        android:id="@+id/videoView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 </androidx.constraintlayout.widget.ConstraintLayout>

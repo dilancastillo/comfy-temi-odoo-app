@@ -12,7 +12,8 @@ import com.robotemi.sdk.listeners.OnRobotReadyListener
 
 class TemiController(
     private val context: Context,
-    private val onStatus: (String) -> Unit
+    private val onStatus: (String) -> Unit,
+    private val onArrived: (() -> Unit)? = null
 ) : OnRobotReadyListener, OnGoToLocationStatusChangedListener {
 
     private val robot: Robot = Robot.getInstance()
@@ -55,7 +56,19 @@ class TemiController(
             return
         }
 
-        robot.goTo(target)
+        if(target.contains("promosemana1")){
+
+            robot.goTo(target,false,false,null,true, true)
+        }
+        else{
+            robot.goTo(target,true,false,null,false, true)
+
+        }
+
+        //robot.goTo(target)
+       //
+
+
     }
 
     override fun onGoToLocationStatusChanged(
@@ -68,21 +81,28 @@ class TemiController(
 
         if (status == "complete") {
             robot.cancelAllTtsRequests()
+            onArrived?.invoke()
             last_location = location
             if (!executeSequences) return // si es false, no hace nada más
 
             val sequenceName = when {
-                last_location?.contains("promococina", ignoreCase = true) == true -> "promociones"
+                last_location?.contains("promococina", ignoreCase = true) == true -> "promococina"
                 last_location?.contains("promorevestimientos", ignoreCase = true) == true -> "promorevestimientos"
                 last_location?.contains("promolavamanos", ignoreCase = true) == true -> "promolavamanos"
+                last_location?.contains("pisobaño", ignoreCase = true) == true -> "video_bano"
+                last_location?.contains("pisococina", ignoreCase = true) == true -> "video_bano"
+                last_location?.contains("promosemana1", ignoreCase = true) == true -> "ejemplo promocion"
+                last_location?.contains("promosemana2", ignoreCase = true) == true -> "ejemplo promocion2"
                 else -> null
             }
-
             sequenceName?.let { seq ->
                 handler.postDelayed({
                     ejecutarSequence(seq)
                 }, 1)
             }
+
+
+
 
         }
     }
@@ -98,7 +118,6 @@ class TemiController(
                 toast("Sequence '${sequenceName}' no encontrada")
                 return
             }
-
             Log.i(TAG, "Ejecutando sequence ${sequence.name}")
             robot.cancelAllTtsRequests()
 
@@ -113,6 +132,9 @@ class TemiController(
             Log.e(TAG, "Error ejecutando sequence", e)
             toast("Error al ejecutar sequence")
         }
+    }
+    fun playSequence(sequenceName: String) {
+        ejecutarSequence(sequenceName)
     }
 
     private fun toast(msg: String) {

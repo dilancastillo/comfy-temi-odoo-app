@@ -30,6 +30,9 @@ class PromotionsActivity : AppCompatActivity() {
         binding.btnGotopromotions.setOnClickListener {
             startActivity(Intent(this, SelectPromoActivity::class.java))
         }
+        binding.imgbtnback.setOnClickListener {
+            finish()
+        }
     }
     override fun onResume(){
         super.onResume()
