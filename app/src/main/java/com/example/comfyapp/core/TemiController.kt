@@ -97,7 +97,7 @@ class TemiController(
             }
             sequenceName?.let { seq ->
                 handler.postDelayed({
-                    ejecutarSequence(seq)
+                        ejecutarSequence(seq)
                 }, 1)
             }
 

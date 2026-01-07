@@ -50,6 +50,10 @@ class TilesListActivity : AppCompatActivity() {
             showTrayectoVideo()
             temiController.goToLocation(localName)
         }
+        binding.floatingMenu.btnPromos.setOnClickListener {
+            val localName = "promosemana2"
+            temiController.goToLocation(localName)
+        }
 
 
     }
