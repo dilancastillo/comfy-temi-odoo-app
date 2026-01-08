@@ -19,7 +19,7 @@ class ProductsUserActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         robot = Robot.getInstance()
-        robot.speak(TtsRequest.create("¡Perfecto!, ¿Qué tipo de producto estás buscondo? pisos y paredes, sanitarios o griferías. Toca en mi pantalla y te  mostraré las últimas tendencias de esta categoría",false))
+        robot.speak(TtsRequest.create("¡Bienvenido!, ¿Qué tipo de producto estás buscondo? pisos y paredes, sanitarios o griferías. Toca en mi pantalla y te  mostraré las últimas tendencias de esta categoría",false))
 
         super.onCreate(savedInstanceState)
         binding = ActivityProductsUserBinding.inflate(layoutInflater)

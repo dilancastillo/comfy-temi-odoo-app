@@ -9,6 +9,8 @@ import com.robotemi.sdk.Robot
 import com.robotemi.sdk.TtsRequest
 import com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener
 import com.robotemi.sdk.listeners.OnRobotReadyListener
+import com.robotemi.sdk.navigation.model.SpeedLevel
+
 
 class TemiController(
     private val context: Context,
@@ -56,12 +58,12 @@ class TemiController(
             return
         }
 
-        if(target.contains("promosemana1")){
+        if(target.contains("promosemana1")||target.contains("promosemana")){
 
-            robot.goTo(target,false,false,null,true, true)
+            robot.goTo(target,false,false, SpeedLevel.MEDIUM,true, true)
         }
         else{
-            robot.goTo(target,true,false,null,false, true)
+            robot.goTo(target,true,false, SpeedLevel.MEDIUM,false, true)
 
         }
 
@@ -91,7 +93,11 @@ class TemiController(
                 last_location?.contains("promolavamanos", ignoreCase = true) == true -> "promolavamanos"
                 last_location?.contains("pisobaño", ignoreCase = true) == true -> "video_bano"
                 last_location?.contains("pisococina", ignoreCase = true) == true -> "video_bano"
-                last_location?.contains("promosemana1", ignoreCase = true) == true -> "ejemplo promocion"
+                last_location?.contains("promosemana1", ignoreCase = true) == true -> run{
+                    robot.tiltAngle(10, 1f)
+                    "ejemplo promocion"
+                }
+                last_location?.contains("promosemana", ignoreCase = true) == true -> "promosemana"
                 last_location?.contains("promosemana2", ignoreCase = true) == true -> "ejemplo promocion2"
                 else -> null
             }
@@ -120,7 +126,6 @@ class TemiController(
             }
             Log.i(TAG, "Ejecutando sequence ${sequence.name}")
             robot.cancelAllTtsRequests()
-
             robot.playSequence(
                 sequence.id,
                 false,
