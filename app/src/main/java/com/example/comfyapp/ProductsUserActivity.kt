@@ -7,7 +7,6 @@ import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 import com.example.comfyapp.core.TemiController
 import com.example.comfyapp.databinding.ActivityProductsUserBinding
-import com.example.comfyapp.databinding.ActivityTilesListBinding
 import com.robotemi.sdk.Robot
 import com.robotemi.sdk.TtsRequest
 
@@ -42,6 +41,9 @@ class ProductsUserActivity : AppCompatActivity() {
         binding.floatingMenu.btnPromos.setOnClickListener {
             val localName = "promosemana2"
             temiController.goToLocation(localName)
+        }
+        binding.btnBathrooms.setOnClickListener {
+            startActivity(Intent(this, ProductListUser::class.java))
         }
     }
     override fun onResume(){

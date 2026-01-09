@@ -119,7 +119,7 @@
 
         <!-- CARD 2 -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/btn_promotions"
+            android:id="@+id/btn_bathrooms"
             android:layout_width="0dp"
             android:layout_height="380dp"
             android:layout_columnWeight="1"
