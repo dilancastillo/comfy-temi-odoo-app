@@ -1,5 +1,6 @@
 package com.example.comfyapp.data.repository
 
+import android.util.Log
 import com.example.comfyapp.OdooHelper
 import com.example.comfyapp.core.ModelProductStock
 import com.google.gson.JsonObject
@@ -54,7 +55,10 @@ class ProductRepository {
                 }.distinct()
 
                 // 2️⃣ Traer las URLs desde product.template
-                val domainTemplate = templateIds.map { listOf("id", "=", it) }
+                val domainTemplate = listOf(
+                    listOf("id", "in", templateIds)
+                )
+
 
                 val fieldsTemplate = mapOf(
                     "id" to true,
@@ -69,7 +73,7 @@ class ProductRepository {
                     order = "id asc",
                     limit = 5000,
                     onSuccess = { resultTemplate ->
-
+                        Log.d("RAW_TEMPLATE_JSON", resultTemplate.toString())
                         // Map de template_id a website_url
                         val templateMap = resultTemplate.mapNotNull {
                             val obj = it.asJsonObject
@@ -83,6 +87,12 @@ class ProductRepository {
                             try {
                                 val obj = it.asJsonObject
                                 val tmplId = obj["product_tmpl_id"]?.asJsonArray?.get(0)?.asInt
+                                val websiteUrl = tmplId?.let { templateMap[it] }
+
+                                Log.d(
+                                    "FINAL_PRODUCT_URL",
+                                    "productId=${obj["id"].asInt} | tmplId=$tmplId | websiteUrl=$websiteUrl"
+                                )
                                 ModelProductStock(
                                     id = obj["id"].asInt,
                                     name = obj["name"].asString,
@@ -94,7 +104,7 @@ class ProductRepository {
                                         .toDouble(),
                                     description = obj["description"]?.asString,
                                     imageBase64 = obj["image_128"]?.asString,
-                                    websiteUrl = tmplId?.let { templateMap[it] }
+                                    website_url = tmplId?.let { templateMap[it] }
                                 )
                             } catch (e: Exception) {
                                 null

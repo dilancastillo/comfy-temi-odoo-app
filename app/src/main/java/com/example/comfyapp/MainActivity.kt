@@ -159,6 +159,7 @@ class MainActivity : AppCompatActivity(), Robot.TtsListener {
 
                             speak("Mostrando ${products.size} productos en $category.")
                         }
+
                     }
                 }
             },

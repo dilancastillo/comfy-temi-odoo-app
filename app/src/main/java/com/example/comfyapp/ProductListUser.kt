@@ -1,6 +1,7 @@
 package com.example.comfyapp
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -33,6 +34,14 @@ class ProductListUser : AppCompatActivity() {
                 usedInId = usedInId,
                 locationName = "Tunja",
                 onSuccess = { products: List<ModelProductStock> ->
+                    Log.d("REPO_RESULT", "Productos recibidos: ${products.size}")
+
+                    products.forEach {
+                        Log.d(
+                            "REPO_RESULT",
+                            "id=${it.id} | name=${it.name} | websiteUrl=${it.website_url}"
+                        )
+                    }
                     if (products.isEmpty()) {
                         Toast.makeText(this, "No hay productos disponibles", Toast.LENGTH_LONG).show()
                         return@getProductsWithStockAndUrl
@@ -46,21 +55,27 @@ class ProductListUser : AppCompatActivity() {
                             price = model.price,
                             stock = model.free_qty,
                             imageBase64 = model.imageBase64,
-                            description = model.description
+                            description = model.description,
+                            website_url = model.website_url
                         )
                     }
 
-                    supportFragmentManager.beginTransaction()
-                        .replace(
-                            R.id.fragmentContainer2,
-                            ProductListFragment.newInstance(productList)
-                        )
-                        .commit()
+                    runOnUiThread {
+                        supportFragmentManager.beginTransaction()
+                            .replace(
+                                R.id.fragmentContainer3,
+                                ProductListFragment.newInstance(productList)
+                            )
+                            .commit()
+                    }
                 },
                 onError = { err ->
                     Toast.makeText(this, "Error: $err", Toast.LENGTH_LONG).show()
                 }
             )
+        }
+        binding.imgbtnback.setOnClickListener {
+            finish()
         }
     }
 

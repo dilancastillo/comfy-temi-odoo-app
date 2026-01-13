@@ -30,8 +30,7 @@
     <ImageView
         android:id="@+id/imgLogo"
         android:layout_width="650dp"
-        android:layout_height="250dp"
-        android:layout_marginTop="48dp"
+        android:layout_height="100dp"
         android:layout_gravity="center"
         android:src="@drawable/logo_comfer" />
 
@@ -45,8 +44,7 @@
         android:gravity="center"
         android:textColor="@color/primary"
         android:background="@color/primary_dark"
-        app:layout_constraintTop_toBottomOf="@id/imgLogo"
-        android:layout_marginTop="16dp"/>
+        app:layout_constraintTop_toBottomOf="@id/imgLogo"/>
 
     <!-- SUBTÍTULO -->
     <TextView
@@ -59,14 +57,14 @@
         android:textColor="@color/white"
         android:background="@color/primary_dark"
         app:layout_constraintTop_toBottomOf="@id/tituloMenu"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="16dp"
+        android:paddingBottom="3dp"/>
     </LinearLayout>
     <LinearLayout
         android:id="@+id/filterRow"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
         android:layout_marginStart="32dp"
         app:layout_constraintTop_toBottomOf="@id/contentheader"
         app:layout_constraintStart_toStartOf="parent">
@@ -101,25 +99,19 @@
 
     </LinearLayout>
 
-    <ScrollView
-        android:id="@+id/scrollCards"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:fillViewport="true"
-        app:layout_constraintTop_toBottomOf="@id/filterRow"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+
         <FrameLayout
-            android:id="@+id/fragmentContainer2"
+            android:id="@+id/fragmentContainer3"
             android:layout_width="0dp"
             android:layout_height="0dp"
             app:layout_constraintTop_toBottomOf="@+id/filterRow"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="8dp"/>
-    </ScrollView>
+            android:layout_marginTop="8dp">
+
+        </FrameLayout>
+
     <include
         android:id="@+id/floatingMenu"
         layout="@layout/view_floating_actions"

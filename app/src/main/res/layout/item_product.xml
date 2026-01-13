@@ -16,6 +16,9 @@
         android:layout_height="wrap_content"
         android:padding="15dp"
         android:paddingBottom="120dp"
+        android:clickable="false"
+        android:focusable="false"
+        android:foreground="?attr/selectableItemBackground"
         >
 
 
@@ -66,6 +69,9 @@
             android:text="Stock: 0"
             android:textAllCaps="false"
             android:textColor="@color/text_secondary"
+            android:clickable="false"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
             app:strokeColor="@color/primary_dark"
             app:strokeWidth="1dp"
             app:cornerRadius="16dp"

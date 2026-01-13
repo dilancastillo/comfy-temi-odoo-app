@@ -1,6 +1,8 @@
 package com.example.comfyapp
 
+import android.content.Intent
 import android.util.Base64
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -26,7 +28,7 @@ class ProductAdapter(
         }
 
         fun bind(product: Product) {
-
+            Log.d("ADAPTER_BIND", "Binding producto: ${product.name}")
             binding.tvName.text = product.name
             binding.tvPrice.text = "Precio: ${product.price}"
             binding.badgeStock.text = "Stock: ${product.stock}"
@@ -52,7 +54,24 @@ class ProductAdapter(
                     .into(binding.imgProduct)
             }
 
-            binding.root.setOnClickListener { onItemClick(product) }
+            binding.root.setOnClickListener {
+                val finalUrl = if (!product.website_url.isNullOrBlank()) {
+                    if (product.website_url.startsWith("https")) product.website_url
+                    else "https://www.comfer.co${product.website_url}"
+                } else {
+                    Log.d("PRODUCT_CLICK", "Producto sin URL: ${product.name}")
+                    return@setOnClickListener
+                }
+
+                Log.d("PRODUCT_CLICK", "Click en producto: ${product.name}")
+                Log.d("PRODUCT_CLICK_URL", "URL final: $finalUrl")
+
+                val intent = Intent(binding.root.context, WebViewActivity::class.java).apply {
+                    putExtra(WebViewActivity.EXTRA_URL, finalUrl)
+                }
+
+                binding.root.context.startActivity(intent)
+            }
         }
     }
 

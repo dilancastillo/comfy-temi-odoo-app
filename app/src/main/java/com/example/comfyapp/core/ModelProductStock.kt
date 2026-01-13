@@ -7,5 +7,5 @@ data class ModelProductStock(
     val imageBase64: String? = null,
     val free_qty: Double = 0.0,
     val description: String? = null,
-    val websiteUrl: String? = null
+    val website_url: String?
 )
