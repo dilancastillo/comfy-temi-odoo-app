@@ -89,7 +89,7 @@ class TemiController(
 
             val sequenceName = when {
                 last_location?.contains("promococina", ignoreCase = true) == true -> "promococina"
-                last_location?.contains("promorevestimientos", ignoreCase = true) == true -> "promorevestimientos"
+                last_location?.contains("fachadas porcelanatos", ignoreCase = true) == true -> "video_bano"
                 last_location?.contains("promolavamanos", ignoreCase = true) == true -> "promolavamanos"
                 last_location?.contains("pisobaño", ignoreCase = true) == true -> "video_bano"
                 last_location?.contains("pisococina", ignoreCase = true) == true -> "video_bano"

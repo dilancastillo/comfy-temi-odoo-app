@@ -1,10 +1,13 @@
 package com.example.comfyapp
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.telecom.Call
 import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.IntentCompat
 import com.example.comfyapp.core.TemiController
 import com.example.comfyapp.databinding.ActivityTilesListBinding
 import com.robotemi.sdk.Robot
@@ -37,18 +40,27 @@ class TilesListActivity : AppCompatActivity() {
             finish()
         }
         binding.btnbathrooms.setOnClickListener {
-            val localName= "pisobaño"
+            val localName= "fachadas porcelanatos"
+            val used_in= 1
             robot.speak(TtsRequest.create("¡Perfecto!. ¡Buena elección, sígueme!",false))
+            //lo de abajo lo comenté para pruebas
             showTrayectoVideo()
-           // robot.goTo(localName, true, false,null, false, false)
             temiController.goToLocation(localName)
-            //temiController.playSequence("secuencia de trayecto")
+
+            val intent = Intent(this, ProductListUser::class.java)
+            intent.putExtra("EXTRA_ID", used_in)
+            startActivity(intent)
         }
         binding.btnKitchens.setOnClickListener {
             val localName="pisococina"
+            val used_in= 2
             robot.speak(TtsRequest.create("¡Excelente!. ¡Buena elección, sígueme!", false))
-            showTrayectoVideo()
-            temiController.goToLocation(localName)
+            //lo de abajo lo comenté para pruebas
+            //showTrayectoVideo()
+            //temiController.goToLocation(localName)
+            val intent = Intent(this, ProductListUser::class.java)
+            intent.putExtra("EXTRA_ID", used_in)
+            startActivity(intent)
         }
         binding.floatingMenu.btnPromos.setOnClickListener {
             val localName = "promosemana2"

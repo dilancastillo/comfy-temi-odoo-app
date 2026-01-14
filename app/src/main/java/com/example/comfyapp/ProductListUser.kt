@@ -13,29 +13,23 @@ class ProductListUser : AppCompatActivity() {
 
     private lateinit var binding: ActivityProductListUserBinding
     private val repository = ProductRepository()
+    private var used_In: Int = -1
 
-    private val zoneToUsedInId = mapOf(
-        "Baños" to 1,
-        "Cocina" to 2
-    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityProductListUserBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        used_In = intent.getIntExtra("EXTRA_ID", -1)
 
-        setupSpinner()
 
-        binding.btnSearch.setOnClickListener {
-            val selectedZone = binding.spinnerZone.selectedItem.toString()
-            val usedInId = zoneToUsedInId[selectedZone] ?: return@setOnClickListener
 
             repository.getProductsWithStockAndUrl(
-                usedInId = usedInId,
+                usedInId = used_In,
                 locationName = "Tunja",
                 onSuccess = { products: List<ModelProductStock> ->
                     Log.d("REPO_RESULT", "Productos recibidos: ${products.size}")
-
+                    Log.d("EXTRA_ID", "usedInId recibido = $used_In")
                     products.forEach {
                         Log.d(
                             "REPO_RESULT",
@@ -73,20 +67,11 @@ class ProductListUser : AppCompatActivity() {
                     Toast.makeText(this, "Error: $err", Toast.LENGTH_LONG).show()
                 }
             )
-        }
+
         binding.imgbtnback.setOnClickListener {
             finish()
         }
     }
 
-    private fun setupSpinner() {
-        val zonas = zoneToUsedInId.keys.toList()
-        val adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            zonas
-        )
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerZone.adapter = adapter
-    }
+
 }
