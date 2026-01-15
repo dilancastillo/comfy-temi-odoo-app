@@ -287,12 +287,13 @@ class SelectNewProductActivity : AppCompatActivity() {
                                 ).show()
                             }
 
+                            val fragment = ProductListFragment.newInstance()
+                            fragment.setProducts(productsWithStock)
+
                             supportFragmentManager.beginTransaction()
-                                .replace(
-                                    R.id.fragmentContainer2,
-                                    ProductListFragment.newInstance(productsWithStock)
-                                )
+                                .replace(R.id.fragmentContainer2, fragment)
                                 .commit()
+
                         }
                     },
                     onError = { errProducts ->

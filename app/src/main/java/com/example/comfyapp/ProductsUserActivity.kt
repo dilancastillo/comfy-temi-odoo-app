@@ -43,8 +43,28 @@ class ProductsUserActivity : AppCompatActivity() {
             temiController.goToLocation(localName)
         }
         binding.btnBathrooms.setOnClickListener {
-            startActivity(Intent(this, ProductListUser::class.java))
+            robot.speak(TtsRequest.create("¡Perfecto!, te guiaré a la zona de sanitarios e igualmente puedes ver los productos en mi pantalla",false))
+            val intent = Intent(this, ProductListUser::class.java)
+            val localName="sanitarios"
+            temiController.goToLocation(localName)
+            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.CATEGORY.name)
+            intent.putExtra("CATEGORY_ID", 58)   // sanitarios
+            intent.putExtra("LOCATION_ID", 8)    // tunja
+            intent.putExtra("tituloMenu", "Sanitarios y Accesorios")
+            startActivity(intent)
         }
+        binding.btnfaucets.setOnClickListener {
+            robot.speak(TtsRequest.create("¡Perfecto!, te guiaré a la zona de griferías e igualmente puedes ver los productos en mi pantalla",false))
+            val localName="griferías lavamanos"
+            temiController.goToLocation(localName)
+            val intent = Intent(this, ProductListUser::class.java)
+            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.CATEGORY.name)
+            intent.putExtra("CATEGORY_ID", 53)
+            intent.putExtra("LOCATION_ID", 8)
+            intent.putExtra("tituloMenu", "Griferias")
+            startActivity(intent)
+        }
+
     }
     override fun onResume(){
         super.onResume()

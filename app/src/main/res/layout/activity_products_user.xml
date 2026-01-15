@@ -163,7 +163,7 @@
 
         <!-- CARD 3 -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/btnEmpezar"
+            android:id="@+id/btnfaucets"
             android:layout_width="0dp"
             android:layout_height="380dp"
             android:layout_columnWeight="1"

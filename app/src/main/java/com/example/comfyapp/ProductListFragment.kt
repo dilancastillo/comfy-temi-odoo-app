@@ -13,29 +13,36 @@ import com.example.comfyapp.databinding.FragmentProductListBinding
 import java.io.Serializable
 
 class ProductListFragment : Fragment() {
+
     private var _binding: FragmentProductListBinding? = null
     private val binding get() = _binding!!
 
+    private var products: List<Product> = emptyList()
+
     companion object {
-        fun newInstance(products: List<Product>): ProductListFragment {
-            return ProductListFragment().apply {
-                arguments = Bundle().apply {
-                    putSerializable("products", ArrayList(products))
-                }
-            }
+        fun newInstance(): ProductListFragment {
+            return ProductListFragment()
         }
     }
 
+    fun setProducts(list: List<Product>) {
+        products = list
+    }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         _binding = FragmentProductListBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         binding.recyclerView.layoutManager = GridLayoutManager(context, 3)
-        val products = arguments?.getSerializable("products") as? List<Product> ?: emptyList()
+
         val adapter = ProductAdapter(products) { product ->
 
             val url = product.website_url
@@ -45,7 +52,6 @@ class ProductListFragment : Fragment() {
                     if (url.startsWith("https")) url
                     else "https://www.comfer.co$url"
 
-                Log.d("PRODUCT_URL", "URL final: $finalUrl")
                 val intent = Intent(requireContext(), WebViewActivity::class.java).apply {
                     putExtra(WebViewActivity.EXTRA_URL, finalUrl)
                     putExtra(WebViewActivity.EXTRA_ID, product.id)
@@ -61,6 +67,7 @@ class ProductListFragment : Fragment() {
                 ).show()
             }
         }
+
         binding.recyclerView.adapter = adapter
     }
 

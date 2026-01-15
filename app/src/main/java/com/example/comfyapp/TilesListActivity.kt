@@ -40,31 +40,33 @@ class TilesListActivity : AppCompatActivity() {
             finish()
         }
         binding.btnbathrooms.setOnClickListener {
-            val localName= "fachadas porcelanatos"
-            val used_in= 1
-            robot.speak(TtsRequest.create("¡Perfecto!. ¡Buena elección, sígueme!",false))
+            val localName= "pisos exteriores alfa"
+            robot.speak(TtsRequest.create("¡Perfecto!. ¡Buena elección, sígueme! y te llevaré a la zona de revestimientos!",false))
             //lo de abajo lo comenté para pruebas
-            showTrayectoVideo()
+            //showTrayectoVideo()
             temiController.goToLocation(localName)
 
             val intent = Intent(this, ProductListUser::class.java)
-            intent.putExtra("EXTRA_ID", used_in)
+            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.USED_IN.name)
+            intent.putExtra("USED_IN_ID", 1)
+            intent.putExtra("tituloMenu", "Pisos y paredes en Baños")
             startActivity(intent)
         }
         binding.btnKitchens.setOnClickListener {
             val localName="pisococina"
-            val used_in= 2
-            robot.speak(TtsRequest.create("¡Excelente!. ¡Buena elección, sígueme!", false))
+            robot.speak(TtsRequest.create("¡Excelente!. ¡Buena elección, sígueme! y te llevaré a la zona de revestimientos!", false))
             //lo de abajo lo comenté para pruebas
             //showTrayectoVideo()
             //temiController.goToLocation(localName)
             val intent = Intent(this, ProductListUser::class.java)
-            intent.putExtra("EXTRA_ID", used_in)
+            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.USED_IN.name)
+            intent.putExtra("USED_IN_ID", 2)
+            intent.putExtra("tituloMenu", "Pisos y paredes en Cocinas")
             startActivity(intent)
         }
         binding.floatingMenu.btnPromos.setOnClickListener {
-            val localName = "promosemana2"
-            temiController.goToLocation(localName)
+           // val localName = "promosemana2"
+           // temiController.goToLocation(localName)
         }
 
 

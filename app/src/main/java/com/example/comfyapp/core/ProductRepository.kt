@@ -19,7 +19,7 @@ class ProductRepository {
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit
     ) {
-        // 1️⃣ Primero traer todos los productos con stock en la ubicación
+        // Primero traer todos los productos con stock en la ubicación
         val domainStock = listOf(
             listOf("location_id.complete_name", "ilike", locationName),
             listOf("free_qty", ">", 0),
@@ -54,7 +54,7 @@ class ProductRepository {
                     it.asJsonObject["product_tmpl_id"]?.asJsonArray?.get(0)?.asInt
                 }.distinct()
 
-                // 2️⃣ Traer las URLs desde product.template
+                //  Traer las URLs desde product.template
                 val domainTemplate = listOf(
                     listOf("id", "in", templateIds)
                 )
@@ -74,7 +74,7 @@ class ProductRepository {
                     limit = 5000,
                     onSuccess = { resultTemplate ->
                         Log.d("RAW_TEMPLATE_JSON", resultTemplate.toString())
-                        // Map de template_id a website_url
+                        // map de template_id a website_url
                         val templateMap = resultTemplate.mapNotNull {
                             val obj = it.asJsonObject
                             val id = obj["id"].asInt
@@ -82,7 +82,7 @@ class ProductRepository {
                             id to url
                         }.toMap()
 
-                        // Mapear productos con stock + URL
+                        // mapear productos con stock + url
                         val products = resultStock.mapNotNull {
                             try {
                                 val obj = it.asJsonObject
@@ -121,4 +121,53 @@ class ProductRepository {
             onError = { err -> onError("Error al obtener stock: $err") }
         )
     }
+    fun getProductsByCategoryAndLocation(
+        categoryId: Int,
+        locationId: Int,
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val domain = listOf(
+            listOf("categ_id", "child_of", categoryId),
+            listOf("free_qty", ">", 0)
+        )
+
+        val fields = mapOf(
+            "id" to true,
+            "name" to true,
+            "free_qty" to true,
+            "website_url" to true,
+            "list_price" to true,
+            "image_128" to true
+        )
+
+        OdooHelper.executeOdooRpc(
+            model = "product.product",
+            method = "search_read",
+            domain = domain,
+            fields = fields,
+            limit = 10000,
+            order = "name asc",
+            onSuccess = { result ->
+                val products = result.mapNotNull {
+                    try {
+                        val obj = it.asJsonObject
+                        ModelProductStock(
+                            id = obj["id"].asInt,
+                            name = obj["name"].asString,
+                            price = obj["list_price"].asDouble,
+                            free_qty = obj["free_qty"].asDouble,
+                            imageBase64 = obj["image_128"]?.asString,
+                            website_url = obj["website_url"]?.asString
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                onSuccess(products)
+            },
+            onError = onError
+        )
+    }
+
 }
