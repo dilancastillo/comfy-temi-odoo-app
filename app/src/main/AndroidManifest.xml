@@ -25,6 +25,9 @@
         android:theme="@style/Theme.ComfyApp"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".SpinnerActivity"
+            android:exported="false" />
+        <activity
             android:name=".ProductListUser"
             android:exported="false" />
         <activity

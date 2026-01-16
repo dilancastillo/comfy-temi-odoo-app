@@ -60,6 +60,9 @@ class CoverActivity : AppCompatActivity() {
         binding.btnclient.setOnClickListener {
             startActivity(Intent(this, ProductsUserActivity::class.java))
         }
+        binding.card4.setOnClickListener {
+            startActivity(Intent(this, SpinnerActivity::class.java))
+        }
 
         val btnBack = findViewById<ImageView>(R.id.imgbexit)
         btnBack.setOnClickListener {
