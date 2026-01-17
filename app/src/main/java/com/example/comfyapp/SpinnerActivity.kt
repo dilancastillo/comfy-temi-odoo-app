@@ -1,9 +1,13 @@
 package com.example.comfyapp
 
+import android.animation.Animator
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.comfyapp.databinding.ActivitySpinnerBinding
+import android.animation.AnimatorListenerAdapter
+
 
 class SpinnerActivity : AppCompatActivity() {
     // IMPORTANTE: Ajusta este array según tu imagen
@@ -18,6 +22,7 @@ class SpinnerActivity : AppCompatActivity() {
     )
 
     private val sectorAngle = 360f / sectors.size // 60 grados cada sector
+    private var prizeTextShown = false
 
     private lateinit var binding: ActivitySpinnerBinding
 
@@ -46,20 +51,56 @@ class SpinnerActivity : AppCompatActivity() {
         // Rotación absoluta desde 0
         binding.imgWheel.animate()
             .rotation(targetAngle)
-            .setDuration(4000)
+            .setDuration(5000)
             .setInterpolator(android.view.animation.DecelerateInterpolator())
             .withEndAction {
                 showResult(sectors[randomIndex])
-                binding.btnSpin.isEnabled = true
+                //binding.btnSpin.isEnabled = true
             }
             .start()
     }
 
     private fun showResult(premio: String) {
-        Toast.makeText(
-            this,
-            "¡Ganaste $premio!",
-            Toast.LENGTH_LONG
-        ).show()
+
+        // Texto dinámico
+        binding.tvPrize.text = "¡GANASTE $premio% DE DESCUENTO!"
+
+        // Mostrar confetti
+        binding.lottieConfetti.visibility = View.VISIBLE
+        binding.lottieConfetti.playAnimation()
+
+        // Reset
+        prizeTextShown = false
+        binding.tvPrize.visibility = View.GONE
+
+        // Escuchar frames de Lottie
+        binding.lottieConfetti.addAnimatorUpdateListener { animator ->
+            val progress = animator.animatedFraction
+
+            // Mostrar texto aprox en frame 62
+            if (!prizeTextShown && progress >= 0.38f) {
+                prizeTextShown = true
+                binding.tvPrize.visibility = View.VISIBLE
+                binding.tvPrize.animate()
+                    .alpha(1f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(300)
+                    .start()
+            }
+
+            // Ocultar texto aprox en frame 130
+            if (progress >= 0.79f) {
+                binding.tvPrize.visibility = View.GONE
+            }
+        }
+
+        // Al terminar animación
+        binding.lottieConfetti.addAnimatorListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+                binding.lottieConfetti.visibility = View.GONE
+            }
+        })
     }
+
 }
