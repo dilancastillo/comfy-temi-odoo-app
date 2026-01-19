@@ -41,7 +41,7 @@ class TilesListActivity : AppCompatActivity() {
         }
         binding.btnbathrooms.setOnClickListener {
             val localName= "pisos exteriores alfa"
-            robot.speak(TtsRequest.create("¡Perfecto!. ¡Buena elección, sígueme! y te llevaré a la zona de revestimientos!",false))
+            robot.speak(TtsRequest.create("¡Perfecto!. Acompañame!",false))
             //lo de abajo lo comenté para pruebas
             //showTrayectoVideo()
             temiController.goToLocation(localName)
@@ -50,18 +50,22 @@ class TilesListActivity : AppCompatActivity() {
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.USED_IN.name)
             intent.putExtra("USED_IN_ID", 1)
             intent.putExtra("tituloMenu", "Pisos y paredes en Baños")
+            intent.putExtra("VIDEO_RES", R.raw.tendenciasreve)
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)
         }
         binding.btnKitchens.setOnClickListener {
-            val localName="pisococina"
-            robot.speak(TtsRequest.create("¡Excelente!. ¡Buena elección, sígueme! y te llevaré a la zona de revestimientos!", false))
+            val localName="pisos exteriores alfa"
+            robot.speak(TtsRequest.create("¡Excelente!. Acompañame!", false))
             //lo de abajo lo comenté para pruebas
             //showTrayectoVideo()
-            //temiController.goToLocation(localName)
+            temiController.goToLocation(localName)
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.USED_IN.name)
             intent.putExtra("USED_IN_ID", 2)
             intent.putExtra("tituloMenu", "Pisos y paredes en Cocinas")
+            intent.putExtra("VIDEO_RES", R.raw.tendenciasreve)
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)
         }
         binding.floatingMenu.btnPromos.setOnClickListener {

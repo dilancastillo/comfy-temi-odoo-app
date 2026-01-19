@@ -63,7 +63,7 @@ class TemiController(
             robot.goTo(target,false,false, SpeedLevel.MEDIUM,true, true)
         }
         else{
-            robot.goTo(target,true,false, SpeedLevel.MEDIUM,false, true)
+            robot.goTo(target,true,false, SpeedLevel.MEDIUM,false, false)
 
         }
 
@@ -83,6 +83,9 @@ class TemiController(
 
         if (status == "complete") {
             robot.cancelAllTtsRequests()
+            LocationEventManager.notifyLocationArrived(location)
+            onArrived?.invoke()
+            last_location = location
             onArrived?.invoke()
             last_location = location
             if (!executeSequences) return // si es false, no hace nada más
@@ -95,7 +98,7 @@ class TemiController(
                 last_location?.contains("pisococina", ignoreCase = true) == true -> "video_bano"
                 last_location?.contains("promosemana1", ignoreCase = true) == true -> run{
                     robot.tiltAngle(10, 1f)
-                    "ejemplo promocion"
+                    "promocionintro"
                 }
                 last_location?.contains("promosemana", ignoreCase = true) == true -> "promosemana"
                 last_location?.contains("promosemana2", ignoreCase = true) == true -> "ejemplo promocion2"

@@ -43,7 +43,7 @@ class ProductsUserActivity : AppCompatActivity() {
             temiController.goToLocation(localName)
         }
         binding.btnBathrooms.setOnClickListener {
-            robot.speak(TtsRequest.create("¡Perfecto!, te guiaré a la zona de sanitarios e igualmente puedes ver los productos en mi pantalla",false))
+            robot.speak(TtsRequest.create("¡Perfecto!, Acompáñame.",false))
             val intent = Intent(this, ProductListUser::class.java)
             val localName="sanitarios"
             temiController.goToLocation(localName)
@@ -51,17 +51,22 @@ class ProductsUserActivity : AppCompatActivity() {
             intent.putExtra("CATEGORY_ID", 58)   // sanitarios
             intent.putExtra("LOCATION_ID", 8)    // tunja
             intent.putExtra("tituloMenu", "Sanitarios y Accesorios")
+            intent.putExtra("VIDEO_RES", R.raw.sanitario)
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)
         }
         binding.btnfaucets.setOnClickListener {
-            robot.speak(TtsRequest.create("¡Perfecto!, te guiaré a la zona de griferías e igualmente puedes ver los productos en mi pantalla",false))
-            val localName="griferías lavamanos"
+            robot.speak(TtsRequest.create("¡Perfecto!, Acompáñame.",false))
+            //val localName="griferías lavamanos"
+            val localName="griferias"
             temiController.goToLocation(localName)
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.CATEGORY.name)
             intent.putExtra("CATEGORY_ID", 53)
             intent.putExtra("LOCATION_ID", 8)
             intent.putExtra("tituloMenu", "Griferias")
+            intent.putExtra("VIDEO_RES", R.raw.griferias)
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)
         }
 

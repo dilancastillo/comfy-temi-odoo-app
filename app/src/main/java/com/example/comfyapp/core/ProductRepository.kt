@@ -13,6 +13,7 @@ class ProductRepository {
      * Trae productos con stock > 0 en una ubicación específica y usados en cierta categoría.
      * Luego agrega la URL de la plantilla (product.template) correspondiente.
      */
+    val productsId= mutableListOf(18753, 20979)
     fun getProductsWithStockAndUrl(
         usedInId: Int,
         locationName: String = "Tunja",
@@ -147,7 +148,7 @@ class ProductRepository {
             domain = domain,
             fields = fields,
             limit = 10000,
-            order = "name asc",
+            order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
                     try {

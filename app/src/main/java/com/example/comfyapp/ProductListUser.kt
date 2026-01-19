@@ -1,11 +1,14 @@
 package com.example.comfyapp
 
+import android.content.ContentValues.TAG
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.comfyapp.core.LocationEventManager
 import com.example.comfyapp.core.ModelProductStock
 import com.example.comfyapp.data.repository.ProductRepository
 import com.example.comfyapp.databinding.ActivityProductListUserBinding
@@ -14,6 +17,7 @@ class ProductListUser : AppCompatActivity() {
 
     private lateinit var binding: ActivityProductListUserBinding
     private val repository = ProductRepository()
+    private var videoResId: Int = 0
 
     enum class ProductQueryType {
         USED_IN,
@@ -27,6 +31,24 @@ class ProductListUser : AppCompatActivity() {
 
         val titulo = intent.getStringExtra("tituloMenu")
         binding.tituloMenu.text = titulo
+        videoResId = intent.getIntExtra("VIDEO_RES", 0)
+
+        // Si hay un video, mostrarlo
+        if (videoResId != 0) {
+            showVideoOverlay(videoResId)
+        }
+
+        // Configurar el botón de cerrar video manualmente
+        binding.btnCloseVideo.setOnClickListener {
+            closeVideoOverlay()
+        }
+        LocationEventManager.locationArrived.observe(this) { location ->
+            if (location != null) {
+                Log.d(TAG, "Robot llegó a: $location")
+                closeVideoOverlay()
+            }
+        }
+
 
         val queryType = intent.getStringExtra("QUERY_TYPE")
                 ?.let { ProductQueryType.valueOf(it) }
@@ -111,6 +133,30 @@ private fun showLoading() {
         binding.loading.visibility = View.GONE
     }
 
+    private fun showVideoOverlay(videoResId: Int) {
+        binding.videoOverlayContainer.visibility = View.VISIBLE
 
+        val videoUri = Uri.parse("android.resource://$packageName/$videoResId")
+        binding.videoView.setVideoURI(videoUri)
+
+        // Configurar listener para cuando termine el video
+        binding.videoView.setOnCompletionListener {
+            // Opcional: reiniciar el video o cerrarlo
+            binding.videoView.start() // Para loop
+        }
+
+        // Iniciar reproducción
+        binding.videoView.start()
+    }
+
+    fun closeVideoOverlay() {
+        binding.videoView.stopPlayback()
+        binding.videoOverlayContainer.visibility = View.GONE
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+
+        LocationEventManager.clear()
+    }
 
 }

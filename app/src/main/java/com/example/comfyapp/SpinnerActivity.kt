@@ -10,7 +10,6 @@ import android.animation.AnimatorListenerAdapter
 
 
 class SpinnerActivity : AppCompatActivity() {
-    // IMPORTANTE: Ajusta este array según tu imagen
     // Empieza desde ARRIBA (donde apunta la flecha) y ve en sentido HORARIO
     private val sectors = arrayOf(
         "25",  // Posición 0 - ARRIBA
