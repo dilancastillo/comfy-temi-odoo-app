@@ -165,6 +165,7 @@ class ProductRepository {
                         null
                     }
                 }
+                    .sortedByDescending { it.free_qty }
                 onSuccess(products)
             },
             onError = onError
