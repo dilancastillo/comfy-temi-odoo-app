@@ -14,6 +14,7 @@ import java.security.cert.X509Certificate
 import javax.net.ssl.*
 
 object OdooHelper {
+    const val BASE_URL = "https://comfer-staging-27337911.dev.odoo.com"
 
     // ---------------------------------------------------------
     // CLIENTE SSL INSEGURO (solo para STAGING)

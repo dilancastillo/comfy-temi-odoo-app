@@ -2,6 +2,7 @@ package com.example.comfyapp.data.repository
 
 import android.util.Log
 import com.example.comfyapp.OdooHelper
+import com.example.comfyapp.OdooHelper.BASE_URL
 import com.example.comfyapp.core.ModelProductStock
 import com.google.gson.JsonObject
 import java.math.BigDecimal
@@ -14,6 +15,8 @@ class ProductRepository {
      * Luego agrega la URL de la plantilla (product.template) correspondiente.
      */
     val productsId= mutableListOf(18753, 20979)
+
+
     fun getProductsWithStockAndUrl(
         usedInId: Int,
         locationName: String = "Tunja",
@@ -33,7 +36,6 @@ class ProductRepository {
             "list_price" to true,
             "free_qty" to true,
             "description" to true,
-            "image_512" to true,
             "product_tmpl_id" to true   // Para luego buscar la URL
         )
 
@@ -43,7 +45,7 @@ class ProductRepository {
             domain = domainStock,
             fields = fieldsStock,
             order = "name asc",
-            limit = 5000,
+            limit = 500,
             onSuccess = { resultStock ->
                 if (resultStock.isEmpty()) {
                     onSuccess(emptyList())
@@ -74,7 +76,7 @@ class ProductRepository {
                     order = "id asc",
                     limit = 5000,
                     onSuccess = { resultTemplate ->
-                        Log.d("RAW_TEMPLATE_JSON", resultTemplate.toString())
+                        Log.d("TEMPLATE_COUNT", "Templates: ${resultTemplate.size()}")
                         // map de template_id a website_url
                         val templateMap = resultTemplate.mapNotNull {
                             val obj = it.asJsonObject
@@ -89,7 +91,7 @@ class ProductRepository {
                                 val obj = it.asJsonObject
                                 val tmplId = obj["product_tmpl_id"]?.asJsonArray?.get(0)?.asInt
                                 val websiteUrl = tmplId?.let { templateMap[it] }
-
+                                val productId = obj["id"].asInt
                                 Log.d(
                                     "FINAL_PRODUCT_URL",
                                     "productId=${obj["id"].asInt} | tmplId=$tmplId | websiteUrl=$websiteUrl"
@@ -104,7 +106,7 @@ class ProductRepository {
                                         .setScale(2, RoundingMode.HALF_UP)
                                         .toDouble(),
                                     description = obj["description"]?.asString,
-                                    imageBase64 = obj["image_512"]?.asString,
+                                    imageUrl = "$BASE_URL/web/image/product.product/$productId/image_512",
                                     website_url = tmplId?.let { templateMap[it] }
                                 )
                             } catch (e: Exception) {
@@ -138,8 +140,7 @@ class ProductRepository {
             "name" to true,
             "free_qty" to true,
             "website_url" to true,
-            "list_price" to true,
-            "image_512" to true
+            "list_price" to true
         )
 
         OdooHelper.executeOdooRpc(
@@ -147,18 +148,19 @@ class ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 10000,
+            limit = 500,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
                     try {
                         val obj = it.asJsonObject
+                        val productId = obj["id"].asInt
                         ModelProductStock(
                             id = obj["id"].asInt,
                             name = obj["name"].asString,
                             price = obj["list_price"].asDouble,
                             free_qty = obj["free_qty"].asDouble,
-                            imageBase64 = obj["image_512"]?.asString,
+                            imageUrl = "$BASE_URL/web/image/product.product/$productId/image_512",
                             website_url = obj["website_url"]?.asString
                         )
                     } catch (e: Exception) {

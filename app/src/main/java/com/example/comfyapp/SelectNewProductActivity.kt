@@ -11,6 +11,7 @@ import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.comfyapp.OdooHelper.BASE_URL
 import com.example.comfyapp.core.TemiController
 import com.example.comfyapp.databinding.SelectNewProductBinding
 import java.math.BigDecimal
@@ -227,8 +228,7 @@ class SelectNewProductActivity : AppCompatActivity() {
                     "name" to true,
                     "list_price" to true,
                     "qty_available" to true,
-                    "description" to true,
-                    "image_128" to true
+                    "description" to true
                 )
 
                 OdooHelper.executeOdooRpc(
@@ -242,11 +242,12 @@ class SelectNewProductActivity : AppCompatActivity() {
                         val productsWithStock = resultProducts.mapNotNull { elem ->
                             try {
                                 val obj = elem.asJsonObject
+                                val productId = obj["id"].asInt
                                 Product(
                                     id = obj["id"].asInt,
                                     name = obj["name"].asString,
                                     price = obj["list_price"].asDouble,
-                                    imageBase64 = obj["image_128"]?.asString,
+                                    imageUrl = "$BASE_URL/web/image/product.product/$productId/image_512",
                                     stock = BigDecimal(obj["qty_available"].asDouble)
                                         .setScale(2, RoundingMode.HALF_UP)
                                         .toDouble(),

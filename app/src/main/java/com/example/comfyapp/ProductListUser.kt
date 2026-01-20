@@ -106,7 +106,7 @@ class ProductListUser : AppCompatActivity() {
                 name = model.name,
                 price = model.price,
                 stock = model.free_qty,
-                imageBase64 = model.imageBase64,
+                imageUrl = model.imageUrl,
                 description = model.description,
                 website_url = model.website_url
             )
