@@ -33,7 +33,7 @@ class ProductRepository {
             "list_price" to true,
             "free_qty" to true,
             "description" to true,
-            "image_128" to true,
+            "image_512" to true,
             "product_tmpl_id" to true   // Para luego buscar la URL
         )
 
@@ -104,7 +104,7 @@ class ProductRepository {
                                         .setScale(2, RoundingMode.HALF_UP)
                                         .toDouble(),
                                     description = obj["description"]?.asString,
-                                    imageBase64 = obj["image_128"]?.asString,
+                                    imageBase64 = obj["image_512"]?.asString,
                                     website_url = tmplId?.let { templateMap[it] }
                                 )
                             } catch (e: Exception) {
@@ -139,7 +139,7 @@ class ProductRepository {
             "free_qty" to true,
             "website_url" to true,
             "list_price" to true,
-            "image_128" to true
+            "image_512" to true
         )
 
         OdooHelper.executeOdooRpc(
@@ -158,7 +158,7 @@ class ProductRepository {
                             name = obj["name"].asString,
                             price = obj["list_price"].asDouble,
                             free_qty = obj["free_qty"].asDouble,
-                            imageBase64 = obj["image_128"]?.asString,
+                            imageBase64 = obj["image_512"]?.asString,
                             website_url = obj["website_url"]?.asString
                         )
                     } catch (e: Exception) {
