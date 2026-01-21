@@ -42,14 +42,13 @@ class TilesListActivity : AppCompatActivity() {
         binding.btnbathrooms.setOnClickListener {
             val localName= "pisos exteriores alfa"
             robot.speak(TtsRequest.create("¡Perfecto!. Acompañame!",false))
-            //lo de abajo lo comenté para pruebas
-            //showTrayectoVideo()
-            temiController.goToLocation(localName)
-
+            //temiController.goToLocation(localName)
             val intent = Intent(this, ProductListUser::class.java)
-            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.USED_IN.name)
-            intent.putExtra("USED_IN_ID", 1)
-            intent.putExtra("tituloMenu", "Pisos y paredes en Baños")
+            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
+            intent.putExtra("USED_IN_ID", arrayListOf(30))
+            intent.putExtra("tituloMenu", "Pisos y paredes para Baños y zonas húmedas")
+            intent.putExtra("columnTitleOne", "Únicamente para Paredes")
+            intent.putExtra("columnTitleTwo", "Para Pisos y Paredes")
             intent.putExtra("VIDEO_RES", R.raw.tendenciasreve)
             intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)
@@ -57,30 +56,50 @@ class TilesListActivity : AppCompatActivity() {
         binding.btnKitchens.setOnClickListener {
             val localName="pisos exteriores alfa"
             robot.speak(TtsRequest.create("¡Excelente!. Acompañame!", false))
-            //lo de abajo lo comenté para pruebas
-            //showTrayectoVideo()
-            temiController.goToLocation(localName)
+            //temiController.goToLocation(localName)
             val intent = Intent(this, ProductListUser::class.java)
-            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.USED_IN.name)
-            intent.putExtra("USED_IN_ID", 2)
-            intent.putExtra("tituloMenu", "Pisos y paredes en Cocinas")
+            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
+            intent.putExtra("USED_IN_ID", arrayListOf(29))
+            intent.putExtra("tituloMenu", "Pisos y paredes para Cocinas")
+            intent.putExtra("columnTitleOne", "Únicamente para Paredes")
+            intent.putExtra("columnTitleTwo", "Para Pisos y Paredes")
             intent.putExtra("VIDEO_RES", R.raw.tendenciasreve)
             intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)
         }
+        binding.btnZoneSocial.setOnClickListener {
+            robot.speak(TtsRequest.create("¡Excelente!. Acompañame!", false))
+            //temiController.goToLocation("pisos exteriores alfa")
+            val intent = Intent(this, ProductListUser::class.java)
+            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
+            intent.putExtra("USED_IN_ID", arrayListOf(31,28,33))
+            intent.putExtra("tituloMenu", "Pisos y Paredes para Zonas Sociales")
+            intent.putExtra("columnTitleOne", "Únicamente para Paredes")
+            intent.putExtra("columnTitleTwo", "Para Pisos y Paredes")
+            intent.putExtra("VIDEO_RES", R.raw.tendenciasreve)
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(intent)
+        }
+        binding.btnExterior.setOnClickListener {
+            robot.speak(TtsRequest.create("¡Excelente!. Acompañame!", false))
+            //temiController.goToLocation("pisos exteriores alfa")
+            val intent = Intent(this, ProductListUser::class.java)
+            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
+            intent.putExtra("USED_IN_ID", arrayListOf(32))
+            intent.putExtra("tituloMenu", "Pisos y Paredes para Exteriores")
+            intent.putExtra("columnTitleOne", "Únicamente para Paredes")
+            intent.putExtra("columnTitleTwo", "Para Pisos y Paredes")
+            intent.putExtra("VIDEO_RES", R.raw.tendenciasreve)
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(intent)
+        }
+
         binding.floatingMenu.btnPromos.setOnClickListener {
            // val localName = "promosemana2"
            // temiController.goToLocation(localName)
         }
 
 
-    }
-    private fun showTrayectoVideo() {
-        binding.videoView.visibility = View.VISIBLE
-        binding.videoView.setVideoURI(
-            Uri.parse("android.resource://${packageName}/${R.raw.loteri}")
-        )
-        binding.videoView.start()
     }
     private fun stopTrayectoVideo() {
         binding.videoView.stopPlayback()

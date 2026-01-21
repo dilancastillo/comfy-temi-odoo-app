@@ -21,7 +21,10 @@ class ProductListUser : AppCompatActivity() {
 
     enum class ProductQueryType {
         USED_IN,
-        CATEGORY
+        CATEGORY,
+        FloorAndWall,
+        Taps,
+        Sanitary
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,6 +34,11 @@ class ProductListUser : AppCompatActivity() {
 
         val titulo = intent.getStringExtra("tituloMenu")
         binding.tituloMenu.text = titulo
+        val columnTitleOne = intent.getStringExtra("columnTitleOne")
+        binding.ColumntitleOne.text = columnTitleOne
+        val columnTitleTwo = intent.getStringExtra("columnTitleTwo")
+        binding.ColumntitleTwo.text = columnTitleTwo
+
         videoResId = intent.getIntExtra("VIDEO_RES", 0)
 
         // Si hay un video, mostrarlo
@@ -56,7 +64,7 @@ class ProductListUser : AppCompatActivity() {
             showLoading()
 
             when (queryType) {
-
+                /*
                 ProductQueryType.USED_IN -> {
                     val usedInId = intent.getIntExtra("USED_IN_ID", -1)
 
@@ -69,8 +77,8 @@ class ProductListUser : AppCompatActivity() {
                         },
                         onError = ::handleError
                     )
-                }
-
+                }*/
+                /*
                 ProductQueryType.CATEGORY -> {
                     val categoryId = intent.getIntExtra("CATEGORY_ID", -1)
                     val locationId = intent.getIntExtra("LOCATION_ID", -1)
@@ -84,7 +92,100 @@ class ProductListUser : AppCompatActivity() {
                         },
                         onError = ::handleError
                     )
+                }*/
+                ProductQueryType.FloorAndWall -> {
+                    val usedInId =  intent.getIntegerArrayListExtra("USED_IN_ID")?: arrayListOf()
+
+                    showLoading()
+
+
+
+                    //unicamente paredes
+                    repository.getProductsAllWall(
+                        locationName = "Tunja/E",
+                        usedInId = usedInId,
+                        onSuccess = { products ->
+                            showProductsInContainer(
+                                products = products,
+                                containerId = R.id.fragmentContainerOne
+                            )
+                            hideLoading()
+                        },
+                        onError = ::handleError
+                    )
+                    // pisos y apredes
+                    repository.getProductsAllFloor(
+                        locationName = "Tunja/E",
+                        usedInId = usedInId,
+                        onSuccess = { products ->
+                            showProductsInContainer(
+                                products = products,
+                                containerId = R.id.fragmentContainerTwo
+                            )
+                        },
+                        onError = ::handleError
+                    )
                 }
+                ProductQueryType.Taps -> {
+
+                    showLoading()
+
+                    // lavamanos
+                    repository.getProductsTapsLavaM(
+                        locationName = "Tunja/E",
+                        onSuccess = { products ->
+                            showProductsInContainer(
+                                products = products,
+                                containerId = R.id.fragmentContainerOne
+                            )
+                        },
+                        onError = ::handleError
+                    )
+
+                    //lavaplatos
+                    repository.getProductsTapsLavaP(
+                        locationName = "Tunja/E",
+                        onSuccess = { products ->
+                            showProductsInContainer(
+                                products = products,
+                                containerId = R.id.fragmentContainerTwo
+                            )
+                            hideLoading()
+                        },
+                        onError = ::handleError
+                    )
+                }
+                ProductQueryType.Sanitary -> {
+
+                    showLoading()
+
+                    // sanitarios - combos
+                    repository.getProductsSanitaryCombo(
+                        locationName = "Tunja/E",
+                        onSuccess = { products ->
+                            showProductsInContainer(
+                                products = products,
+                                containerId = R.id.fragmentContainerOne
+                            )
+                        },
+                        onError = ::handleError
+                    )
+
+                    //sanitarios - solos
+                    repository.getProductsSanitaryOnly(
+                        locationName = "Tunja/E",
+                        onSuccess = { products ->
+                            showProductsInContainer(
+                                products = products,
+                                containerId = R.id.fragmentContainerTwo
+                            )
+                            hideLoading()
+                        },
+                        onError = ::handleError
+                    )
+                }
+
+
 
                 else -> {
                     hideLoading()
@@ -94,11 +195,11 @@ class ProductListUser : AppCompatActivity() {
 
             binding.imgbtnback.setOnClickListener { finish() }
         }
-    private fun showProducts(products: List<ModelProductStock>) {
-        if (products.isEmpty()) {
-            Toast.makeText(this, "No hay productos disponibles", Toast.LENGTH_LONG).show()
-            return
-        }
+    private fun showProductsInContainer(
+        products: List<ModelProductStock>,
+        containerId: Int
+    ) {
+        if (products.isEmpty()) return
 
         val productList = products.map { model ->
             Product(
@@ -116,10 +217,11 @@ class ProductListUser : AppCompatActivity() {
         fragment.setProducts(productList)
 
         supportFragmentManager.beginTransaction()
-            .replace(R.id.fragmentContainer3, fragment)
+            .replace(containerId, fragment)
             .commit()
     }
-private fun handleError(err: String) {
+
+    private fun handleError(err: String) {
     hideLoading()
     Toast.makeText(this, "Error: $err", Toast.LENGTH_LONG).show()
     finish()
@@ -127,10 +229,12 @@ private fun handleError(err: String) {
 
 private fun showLoading() {
         binding.loading.visibility = View.VISIBLE
+        binding.Secondloading.visibility = View.VISIBLE
     }
 
     private fun hideLoading() {
         binding.loading.visibility = View.GONE
+        binding.Secondloading.visibility = View.GONE
     }
 
     private fun showVideoOverlay(videoResId: Int) {

@@ -175,7 +175,7 @@
 
         <!-- CARD 3 -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/btn_room"
+            android:id="@+id/btnZone_social"
             android:layout_width="0dp"
             android:layout_height="380dp"
             android:layout_columnWeight="1"
@@ -210,7 +210,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Sala"
+                        android:text="Zona social"
                         android:textSize="38sp"
                         android:textStyle="bold"
                         android:textColor="@android:color/white"/>
@@ -219,53 +219,6 @@
 
             </FrameLayout>
         </com.google.android.material.card.MaterialCardView>
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/btn_hallway"
-            android:layout_width="0dp"
-            android:layout_height="380dp"
-            android:layout_columnWeight="1"
-            android:layout_margin="12dp"
-            android:clickable="true"
-            android:foreground="?attr/selectableItemBackground"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="5dp"
-            app:strokeWidth="0dp"
-            app:cardBackgroundColor="@color/card_bg_selector">
-
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-                <ImageView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/img_hallway" />
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="#66000000"/>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Pasillos"
-                        android:textSize="38sp"
-                        android:textStyle="bold"
-                        android:textColor="@android:color/white"/>
-
-                </LinearLayout>
-
-            </FrameLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- CARD 2 -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/btn_exterior"
             android:layout_width="0dp"

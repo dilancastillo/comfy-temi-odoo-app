@@ -41,7 +41,7 @@ class ProductListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.recyclerView.layoutManager = GridLayoutManager(context, 3)
+        binding.recyclerView.layoutManager = GridLayoutManager(context, 2)
 
         val adapter = ProductAdapter(products) { product ->
 

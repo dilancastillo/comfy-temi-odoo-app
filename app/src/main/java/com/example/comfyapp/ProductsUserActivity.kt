@@ -46,11 +46,11 @@ class ProductsUserActivity : AppCompatActivity() {
             robot.speak(TtsRequest.create("¡Perfecto!, Acompáñame.",false))
             val intent = Intent(this, ProductListUser::class.java)
             val localName="sanitarios"
-            temiController.goToLocation(localName)
-            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.CATEGORY.name)
-            intent.putExtra("CATEGORY_ID", 58)   // sanitarios
-            intent.putExtra("LOCATION_ID", 8)    // tunja
+            //temiController.goToLocation(localName)
+            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.Sanitary.name)
             intent.putExtra("tituloMenu", "Sanitarios y Accesorios")
+            intent.putExtra("columnTitleOne", "Combos")
+            intent.putExtra("columnTitleTwo", "Solos")
             intent.putExtra("VIDEO_RES", R.raw.sanitario)
             intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)
@@ -59,12 +59,12 @@ class ProductsUserActivity : AppCompatActivity() {
             robot.speak(TtsRequest.create("¡Perfecto!, Acompáñame.",false))
             //val localName="griferías lavamanos"
             val localName="griferias"
-            temiController.goToLocation(localName)
+            //temiController.goToLocation(localName)
             val intent = Intent(this, ProductListUser::class.java)
-            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.CATEGORY.name)
-            intent.putExtra("CATEGORY_ID", 53)
-            intent.putExtra("LOCATION_ID", 8)
+            intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.Taps.name)
             intent.putExtra("tituloMenu", "Griferias")
+            intent.putExtra("columnTitleOne", "Lavamanos")
+            intent.putExtra("columnTitleTwo", "Lavaplatos")
             intent.putExtra("VIDEO_RES", R.raw.griferias)
             intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)

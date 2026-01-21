@@ -7,6 +7,7 @@ import com.example.comfyapp.core.ModelProductStock
 import com.google.gson.JsonObject
 import java.math.BigDecimal
 import java.math.RoundingMode
+import kotlin.collections.listOf
 
 class ProductRepository {
 
@@ -45,7 +46,7 @@ class ProductRepository {
             domain = domainStock,
             fields = fieldsStock,
             order = "name asc",
-            limit = 500,
+            limit = 10,
             onSuccess = { resultStock ->
                 if (resultStock.isEmpty()) {
                     onSuccess(emptyList())
@@ -74,7 +75,7 @@ class ProductRepository {
                     domain = domainTemplate,
                     fields = fieldsTemplate,
                     order = "id asc",
-                    limit = 5000,
+                    limit = 10,
                     onSuccess = { resultTemplate ->
                         Log.d("TEMPLATE_COUNT", "Templates: ${resultTemplate.size()}")
                         // map de template_id a website_url
@@ -160,6 +161,348 @@ class ProductRepository {
                             name = obj["name"].asString,
                             price = obj["list_price"].asDouble,
                             free_qty = obj["free_qty"].asDouble,
+                            imageUrl = "$BASE_URL/web/image/product.product/$productId/image_512",
+                            website_url = obj["website_url"]?.asString
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                    .sortedByDescending { it.free_qty }
+                onSuccess(products)
+            },
+            onError = onError
+        )
+    }
+    //pisos y paredes
+    fun getProductsAllFloor(
+        locationName: String = "Tunja/E",
+        usedInId: List<Int>,
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val domain = listOf(
+            "|",
+                listOf("child_category", "=", "CERAMICA"),
+                listOf("child_category", "=", "PORCELANATO"),
+            listOf("x_traffic","!=","Pared"),
+            listOf("grandchild_category", "!=", "EXTERIORES"),
+            listOf("grandchild_category", "!=", "FACHADAS"),
+            listOf("location_id.complete_name", "ilike", locationName),
+            listOf("free_qty", ">", 10),
+            listOf("x_studio_app_robot", "=", "true"),
+            listOf("used_in_ids", "=", usedInId),
+        )
+
+
+        val fields = mapOf(
+            "id" to true,
+            "name" to true,
+            "free_qty" to true,
+            "website_url" to true,
+            "list_price" to true
+        )
+
+        OdooHelper.executeOdooRpc(
+            model = "product.product",
+            method = "search_read",
+            domain = domain,
+            fields = fields,
+            limit = 500,
+            order = "free_qty desc",
+            onSuccess = { result ->
+                val products = result.mapNotNull {
+                    try {
+                        val obj = it.asJsonObject
+                        val productId = obj["id"].asInt
+                        ModelProductStock(
+                            id = obj["id"].asInt,
+                            name = obj["name"].asString,
+                            price = obj["list_price"].asDouble,
+                            free_qty = BigDecimal(obj["free_qty"].asDouble)
+                                .setScale(2, RoundingMode.HALF_UP)
+                                .toDouble(),
+                            imageUrl = "$BASE_URL/web/image/product.product/$productId/image_512",
+                            website_url = obj["website_url"]?.asString
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                    .sortedByDescending { it.free_qty }
+                onSuccess(products)
+            },
+            onError = onError
+        )
+    }
+    //unicamente paredes
+    fun getProductsAllWall(
+        locationName: String = "Tunja/E",
+        usedInId: List<Int>,
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val domain = listOf(
+            "|",
+                listOf("child_category", "=", "CERAMICA"),
+                listOf("child_category", "=", "PORCELANATO"),
+            listOf("x_traffic","=","Pared"),
+            listOf("grandchild_category", "!=", "EXTERIORES"),
+            listOf("grandchild_category", "!=", "FACHADAS"),
+            listOf("location_id.complete_name", "ilike", locationName),
+            listOf("free_qty", ">", 10),
+            listOf("x_studio_app_robot", "=", "true"),
+            listOf("used_in_ids", "in", usedInId),
+        )
+
+
+        val fields = mapOf(
+            "id" to true,
+            "name" to true,
+            "free_qty" to true,
+            "website_url" to true,
+            "list_price" to true
+        )
+
+        OdooHelper.executeOdooRpc(
+            model = "product.product",
+            method = "search_read",
+            domain = domain,
+            fields = fields,
+            limit = 15,
+            order = "free_qty desc",
+            onSuccess = { result ->
+                val products = result.mapNotNull {
+                    try {
+                        val obj = it.asJsonObject
+                        val productId = obj["id"].asInt
+                        ModelProductStock(
+                            id = obj["id"].asInt,
+                            name = obj["name"].asString,
+                            price = obj["list_price"].asDouble,
+                            free_qty = BigDecimal(obj["free_qty"].asDouble)
+                                .setScale(2, RoundingMode.HALF_UP)
+                                .toDouble(),
+                            imageUrl = "$BASE_URL/web/image/product.product/$productId/image_512",
+                            website_url = obj["website_url"]?.asString
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                    .sortedByDescending { it.free_qty }
+                onSuccess(products)
+            },
+            onError = onError
+        )
+    }
+    //lavamanos
+    fun getProductsTapsLavaM(
+        locationName: String = "Tunja/E",
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val domain = listOf(
+            "&",
+            listOf("parent_category", "ilike", "GRIFERIA"),
+            listOf("child_category", "ilike", "LAVAMANOS"),
+            listOf("location_id.complete_name", "ilike", locationName),
+            listOf("free_qty", ">", 1),
+        )
+
+
+        val fields = mapOf(
+            "id" to true,
+            "name" to true,
+            "free_qty" to true,
+            "website_url" to true,
+            "list_price" to true
+        )
+
+        OdooHelper.executeOdooRpc(
+            model = "product.product",
+            method = "search_read",
+            domain = domain,
+            fields = fields,
+            limit = 15,
+            order = "free_qty desc",
+            onSuccess = { result ->
+                val products = result.mapNotNull {
+                    try {
+                        val obj = it.asJsonObject
+                        val productId = obj["id"].asInt
+                        ModelProductStock(
+                            id = obj["id"].asInt,
+                            name = obj["name"].asString,
+                            price = obj["list_price"].asDouble,
+                            free_qty = BigDecimal(obj["free_qty"].asDouble)
+                                .setScale(2, RoundingMode.HALF_UP)
+                                .toDouble(),
+                            imageUrl = "$BASE_URL/web/image/product.product/$productId/image_512",
+                            website_url = obj["website_url"]?.asString
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                    .sortedByDescending { it.free_qty }
+                onSuccess(products)
+            },
+            onError = onError
+        )
+    }
+    //lavaplatos
+    fun getProductsTapsLavaP(
+        locationName: String = "Tunja/E",
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val domain = listOf(
+            "&",
+            listOf("parent_category", "ilike", "GRIFERIA"),
+            listOf("child_category", "ilike", "LAVAPLATOS"),
+            listOf("location_id.complete_name", "ilike", locationName),
+            listOf("free_qty", ">", 1),
+        )
+
+
+        val fields = mapOf(
+            "id" to true,
+            "name" to true,
+            "free_qty" to true,
+            "website_url" to true,
+            "list_price" to true
+        )
+
+        OdooHelper.executeOdooRpc(
+            model = "product.product",
+            method = "search_read",
+            domain = domain,
+            fields = fields,
+            limit = 15,
+            order = "free_qty desc",
+            onSuccess = { result ->
+                val products = result.mapNotNull {
+                    try {
+                        val obj = it.asJsonObject
+                        val productId = obj["id"].asInt
+                        ModelProductStock(
+                            id = obj["id"].asInt,
+                            name = obj["name"].asString,
+                            price = obj["list_price"].asDouble,
+                            free_qty = BigDecimal(obj["free_qty"].asDouble)
+                                .setScale(2, RoundingMode.HALF_UP)
+                                .toDouble(),
+                            imageUrl = "$BASE_URL/web/image/product.product/$productId/image_512",
+                            website_url = obj["website_url"]?.asString
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                    .sortedByDescending { it.free_qty }
+                onSuccess(products)
+            },
+            onError = onError
+        )
+    }
+    //sanitarios combos
+    fun getProductsSanitaryCombo(
+        locationName: String = "Tunja/E",
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val domain = listOf(
+            "&",
+            listOf("parent_category", "ilike", "PORCELANA SANITARIA"),
+            listOf("child_category", "ilike", "COMBO"),
+            listOf("location_id.complete_name", "ilike", locationName),
+            listOf("free_qty", ">", 1),
+        )
+
+
+        val fields = mapOf(
+            "id" to true,
+            "name" to true,
+            "free_qty" to true,
+            "website_url" to true,
+            "list_price" to true
+        )
+
+        OdooHelper.executeOdooRpc(
+            model = "product.product",
+            method = "search_read",
+            domain = domain,
+            fields = fields,
+            limit = 15,
+            order = "free_qty desc",
+            onSuccess = { result ->
+                val products = result.mapNotNull {
+                    try {
+                        val obj = it.asJsonObject
+                        val productId = obj["id"].asInt
+                        ModelProductStock(
+                            id = obj["id"].asInt,
+                            name = obj["name"].asString,
+                            price = obj["list_price"].asDouble,
+                            free_qty = BigDecimal(obj["free_qty"].asDouble)
+                                .setScale(2, RoundingMode.HALF_UP)
+                                .toDouble(),
+                            imageUrl = "$BASE_URL/web/image/product.product/$productId/image_512",
+                            website_url = obj["website_url"]?.asString
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                    .sortedByDescending { it.free_qty }
+                onSuccess(products)
+            },
+            onError = onError
+        )
+    }
+    //sanitarios combos
+    fun getProductsSanitaryOnly(
+        locationName: String = "Tunja/E",
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val domain = listOf(
+            "&",
+            listOf("parent_category", "ilike", "PORCELANA SANITARIA"),
+            listOf("grandchild_category", "ilike", "one_piece"),
+            listOf("location_id.complete_name", "ilike", locationName),
+            listOf("free_qty", ">", 1),
+        )
+
+
+        val fields = mapOf(
+            "id" to true,
+            "name" to true,
+            "free_qty" to true,
+            "website_url" to true,
+            "list_price" to true
+        )
+
+        OdooHelper.executeOdooRpc(
+            model = "product.product",
+            method = "search_read",
+            domain = domain,
+            fields = fields,
+            limit = 15,
+            order = "free_qty desc",
+            onSuccess = { result ->
+                val products = result.mapNotNull {
+                    try {
+                        val obj = it.asJsonObject
+                        val productId = obj["id"].asInt
+                        ModelProductStock(
+                            id = obj["id"].asInt,
+                            name = obj["name"].asString,
+                            price = obj["list_price"].asDouble,
+                            free_qty = BigDecimal(obj["free_qty"].asDouble)
+                                .setScale(2, RoundingMode.HALF_UP)
+                                .toDouble(),
                             imageUrl = "$BASE_URL/web/image/product.product/$productId/image_512",
                             website_url = obj["website_url"]?.asString
                         )
