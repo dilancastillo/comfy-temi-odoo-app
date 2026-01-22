@@ -9,13 +9,18 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.collections.listOf
 
-class ProductRepository {
+object ProductRepository {
 
     /**
      * Trae productos con stock > 0 en una ubicación específica y usados en cierta categoría.
      * Luego agrega la URL de la plantilla (product.template) correspondiente.
      */
-    val productsId= mutableListOf(18753, 20979)
+    private data class CacheEntry(
+        val data: List<ModelProductStock>,
+        val timestamp: Long
+    )
+    private val cache = mutableMapOf<String, CacheEntry>()
+    private val CACHE_TTL = 5 * 60 * 1000 // 5 minutos
 
 
     fun getProductsWithStockAndUrl(
@@ -181,6 +186,18 @@ class ProductRepository {
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit
     ) {
+        // key única para pisos y paredes
+        val cacheKey = "floor_wall_${locationName}_${usedInId.sorted()}"
+        val now = System.currentTimeMillis()
+
+        // Revisar cache
+        cache[cacheKey]?.let { entry ->
+            if (now - entry.timestamp < CACHE_TTL) {
+                Log.d("CACHE", "Usando cache: $cacheKey")
+                onSuccess(entry.data)
+                return
+            }
+        }
         val domain = listOf(
             "|",
                 listOf("child_category", "=", "CERAMICA"),
@@ -191,7 +208,7 @@ class ProductRepository {
             listOf("location_id.complete_name", "ilike", locationName),
             listOf("free_qty", ">", 10),
             listOf("x_studio_app_robot", "=", "true"),
-            listOf("used_in_ids", "=", usedInId),
+            listOf("used_in_ids", "in", usedInId),
         )
 
 
@@ -208,7 +225,7 @@ class ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 500,
+            limit = 15,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
@@ -229,8 +246,14 @@ class ProductRepository {
                         null
                     }
                 }
-                    .sortedByDescending { it.free_qty }
-                onSuccess(products)
+                val sortedProducts = products.sortedByDescending { it.free_qty }
+
+                cache[cacheKey] = CacheEntry(
+                    data = sortedProducts,
+                    timestamp = now
+                )
+
+                onSuccess(sortedProducts)
             },
             onError = onError
         )
@@ -242,6 +265,18 @@ class ProductRepository {
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit
     ) {
+        // key única para pisos y paredes
+        val cacheKey = "wall_${locationName}_${usedInId.sorted()}"
+        val now = System.currentTimeMillis()
+
+        // Revisar cache
+        cache[cacheKey]?.let { entry ->
+            if (now - entry.timestamp < CACHE_TTL) {
+                Log.d("CACHE", "Usando cache: $cacheKey")
+                onSuccess(entry.data)
+                return
+            }
+        }
         val domain = listOf(
             "|",
                 listOf("child_category", "=", "CERAMICA"),
@@ -290,8 +325,14 @@ class ProductRepository {
                         null
                     }
                 }
-                    .sortedByDescending { it.free_qty }
-                onSuccess(products)
+                val sortedProducts = products.sortedByDescending { it.free_qty }
+
+                cache[cacheKey] = CacheEntry(
+                    data = sortedProducts,
+                    timestamp = now
+                )
+
+                onSuccess(sortedProducts)
             },
             onError = onError
         )

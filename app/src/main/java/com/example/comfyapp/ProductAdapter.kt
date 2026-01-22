@@ -25,7 +25,7 @@ class ProductAdapter(
             binding.badgeStock.text = "Stock: ${product.stock}"
 
             // CARGA POR URL (NO BASE64)
-            Glide.with(binding.imgProduct.context)
+            Glide.with(binding.imgProduct)
                 .load(product.imageUrl)
                 .placeholder(R.drawable.ic_erro_load_img)
                 .error(R.drawable.ic_erro_load_img)

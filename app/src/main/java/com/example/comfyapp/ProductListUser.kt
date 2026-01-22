@@ -16,7 +16,7 @@ import com.example.comfyapp.databinding.ActivityProductListUserBinding
 class ProductListUser : AppCompatActivity() {
 
     private lateinit var binding: ActivityProductListUserBinding
-    private val repository = ProductRepository()
+    private val repository = ProductRepository
     private var videoResId: Int = 0
 
     enum class ProductQueryType {
