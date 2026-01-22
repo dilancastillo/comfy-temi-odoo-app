@@ -343,6 +343,18 @@ object ProductRepository {
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit
     ) {
+        // key única para pisos y paredes
+        val cacheKey = "lava_${locationName}"
+        val now = System.currentTimeMillis()
+
+        // Revisar cache
+        cache[cacheKey]?.let { entry ->
+            if (now - entry.timestamp < CACHE_TTL) {
+                Log.d("CACHE", "Usando cache: $cacheKey")
+                onSuccess(entry.data)
+                return
+            }
+        }
         val domain = listOf(
             "&",
             listOf("parent_category", "ilike", "GRIFERIA"),
@@ -386,8 +398,14 @@ object ProductRepository {
                         null
                     }
                 }
-                    .sortedByDescending { it.free_qty }
-                onSuccess(products)
+                val sortedProducts = products.sortedByDescending { it.free_qty }
+
+                cache[cacheKey] = CacheEntry(
+                    data = sortedProducts,
+                    timestamp = now
+                )
+
+                onSuccess(sortedProducts)
             },
             onError = onError
         )
@@ -398,6 +416,18 @@ object ProductRepository {
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit
     ) {
+        // key única para pisos y paredes
+        val cacheKey = "lavaP_${locationName}"
+        val now = System.currentTimeMillis()
+
+        // Revisar cache
+        cache[cacheKey]?.let { entry ->
+            if (now - entry.timestamp < CACHE_TTL) {
+                Log.d("CACHE", "Usando cache: $cacheKey")
+                onSuccess(entry.data)
+                return
+            }
+        }
         val domain = listOf(
             "&",
             listOf("parent_category", "ilike", "GRIFERIA"),
@@ -441,8 +471,14 @@ object ProductRepository {
                         null
                     }
                 }
-                    .sortedByDescending { it.free_qty }
-                onSuccess(products)
+                val sortedProducts = products.sortedByDescending { it.free_qty }
+
+                cache[cacheKey] = CacheEntry(
+                    data = sortedProducts,
+                    timestamp = now
+                )
+
+                onSuccess(sortedProducts)
             },
             onError = onError
         )
@@ -453,6 +489,18 @@ object ProductRepository {
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit
     ) {
+        // key única para pisos y paredes
+        val cacheKey = "combo_${locationName}"
+        val now = System.currentTimeMillis()
+
+        // Revisar cache
+        cache[cacheKey]?.let { entry ->
+            if (now - entry.timestamp < CACHE_TTL) {
+                Log.d("CACHE", "Usando cache: $cacheKey")
+                onSuccess(entry.data)
+                return
+            }
+        }
         val domain = listOf(
             "&",
             listOf("parent_category", "ilike", "PORCELANA SANITARIA"),
@@ -496,18 +544,36 @@ object ProductRepository {
                         null
                     }
                 }
-                    .sortedByDescending { it.free_qty }
-                onSuccess(products)
+                val sortedProducts = products.sortedByDescending { it.free_qty }
+
+                cache[cacheKey] = CacheEntry(
+                    data = sortedProducts,
+                    timestamp = now
+                )
+
+                onSuccess(sortedProducts)
             },
             onError = onError
         )
     }
-    //sanitarios combos
+    //sanitarios solos
     fun getProductsSanitaryOnly(
         locationName: String = "Tunja/E",
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit
     ) {
+        // key única para pisos y paredes
+        val cacheKey = "SaniOnly_${locationName}"
+        val now = System.currentTimeMillis()
+
+        // Revisar cache
+        cache[cacheKey]?.let { entry ->
+            if (now - entry.timestamp < CACHE_TTL) {
+                Log.d("CACHE", "Usando cache: $cacheKey")
+                onSuccess(entry.data)
+                return
+            }
+        }
         val domain = listOf(
             "&",
             listOf("parent_category", "ilike", "PORCELANA SANITARIA"),
@@ -551,8 +617,14 @@ object ProductRepository {
                         null
                     }
                 }
-                    .sortedByDescending { it.free_qty }
-                onSuccess(products)
+                val sortedProducts = products.sortedByDescending { it.free_qty }
+
+                cache[cacheKey] = CacheEntry(
+                    data = sortedProducts,
+                    timestamp = now
+                )
+
+                onSuccess(sortedProducts)
             },
             onError = onError
         )

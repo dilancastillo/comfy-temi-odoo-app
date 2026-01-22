@@ -9,4 +9,5 @@
     <color name="primary_light">#FFB07A</color>
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
+    <color name="transparentBack">#E0E1E1</color>
 </resources>

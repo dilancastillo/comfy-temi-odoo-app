@@ -8,13 +8,13 @@
     <!-- ICONO REGRESAR -->
     <ImageView
         android:id="@+id/imgbtnback"
-        android:layout_width="35dp"
-        android:layout_height="35dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:src="@drawable/regresar"
         android:contentDescription="Regresar"
         android:clickable="true"
         android:focusable="true"
-        android:tint="@color/primary"
+        android:tint="@color/transparentBack"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginStart="16dp"
