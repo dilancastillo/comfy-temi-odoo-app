@@ -39,14 +39,14 @@ class ProductsUserActivity : AppCompatActivity() {
             finish()
         }
         binding.floatingMenu.btnPromos.setOnClickListener {
-            val localName = "promosemana2"
-            temiController.goToLocation(localName)
+           // val localName = "promosemana2"
+           // temiController.goToLocation(localName)
         }
         binding.btnBathrooms.setOnClickListener {
             robot.speak(TtsRequest.create("¡Perfecto!, Acompáñame.",false))
             val intent = Intent(this, ProductListUser::class.java)
             val localName="sanitarios"
-            //temiController.goToLocation(localName)
+            temiController.goToLocation(localName)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.Sanitary.name)
             intent.putExtra("tituloMenu", "Sanitarios y Accesorios")
             intent.putExtra("columnTitleOne", "Combos")
@@ -56,10 +56,9 @@ class ProductsUserActivity : AppCompatActivity() {
             startActivity(intent)
         }
         binding.btnfaucets.setOnClickListener {
-            robot.speak(TtsRequest.create("¡Perfecto!, Acompáñame.",false))
-            //val localName="griferías lavamanos"
+            robot.speak(TtsRequest.create("¡Perfecto!, Acompáñame.",false)) //val localName="griferías lavamanos"
             val localName="griferias"
-            //temiController.goToLocation(localName)
+            temiController.goToLocation(localName)
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.Taps.name)
             intent.putExtra("tituloMenu", "Griferias")

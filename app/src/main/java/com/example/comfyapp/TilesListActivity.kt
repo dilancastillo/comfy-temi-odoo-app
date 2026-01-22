@@ -42,7 +42,7 @@ class TilesListActivity : AppCompatActivity() {
         binding.btnbathrooms.setOnClickListener {
             val localName= "pisos exteriores alfa"
             robot.speak(TtsRequest.create("¡Perfecto!. Acompañame!",false))
-            //temiController.goToLocation(localName)
+            temiController.goToLocation(localName)
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
             intent.putExtra("USED_IN_ID", arrayListOf(30))
@@ -56,7 +56,7 @@ class TilesListActivity : AppCompatActivity() {
         binding.btnKitchens.setOnClickListener {
             val localName="pisos exteriores alfa"
             robot.speak(TtsRequest.create("¡Excelente!. Acompañame!", false))
-            //temiController.goToLocation(localName)
+            temiController.goToLocation(localName)
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
             intent.putExtra("USED_IN_ID", arrayListOf(29))
@@ -69,7 +69,7 @@ class TilesListActivity : AppCompatActivity() {
         }
         binding.btnZoneSocial.setOnClickListener {
             robot.speak(TtsRequest.create("¡Excelente!. Acompañame!", false))
-            //temiController.goToLocation("pisos exteriores alfa")
+            temiController.goToLocation("pisos exteriores alfa")
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
             intent.putExtra("USED_IN_ID", arrayListOf(31,28,33))
@@ -82,7 +82,7 @@ class TilesListActivity : AppCompatActivity() {
         }
         binding.btnExterior.setOnClickListener {
             robot.speak(TtsRequest.create("¡Excelente!. Acompañame!", false))
-            //temiController.goToLocation("pisos exteriores alfa")
+            temiController.goToLocation("pisos exteriores alfa")
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
             intent.putExtra("USED_IN_ID", arrayListOf(32))
