@@ -154,7 +154,7 @@ object ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 500,
+            limit = 15,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
@@ -208,6 +208,7 @@ object ProductRepository {
             listOf("location_id.complete_name", "ilike", locationName),
             listOf("free_qty", ">", 10),
             listOf("x_studio_app_robot", "=", "true"),
+            listOf("website_published", "=", true),
             listOf("used_in_ids", "in", usedInId),
         )
 
@@ -287,6 +288,7 @@ object ProductRepository {
             listOf("location_id.complete_name", "ilike", locationName),
             listOf("free_qty", ">", 10),
             listOf("x_studio_app_robot", "=", "true"),
+            listOf("website_published", "=", true),
             listOf("used_in_ids", "in", usedInId),
         )
 
@@ -356,10 +358,10 @@ object ProductRepository {
             }
         }
         val domain = listOf(
-            "&",
             listOf("parent_category", "ilike", "GRIFERIA"),
             listOf("child_category", "ilike", "LAVAMANOS"),
             listOf("location_id.complete_name", "ilike", locationName),
+            listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
         )
 
@@ -433,6 +435,7 @@ object ProductRepository {
             listOf("parent_category", "ilike", "GRIFERIA"),
             listOf("child_category", "ilike", "LAVAPLATOS"),
             listOf("location_id.complete_name", "ilike", locationName),
+            listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
         )
 
@@ -506,6 +509,7 @@ object ProductRepository {
             listOf("parent_category", "ilike", "PORCELANA SANITARIA"),
             listOf("child_category", "ilike", "COMBO"),
             listOf("location_id.complete_name", "ilike", locationName),
+            listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
         )
 
@@ -579,6 +583,7 @@ object ProductRepository {
             listOf("parent_category", "ilike", "PORCELANA SANITARIA"),
             listOf("grandchild_category", "ilike", "one_piece"),
             listOf("location_id.complete_name", "ilike", locationName),
+            listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
         )
 

@@ -78,9 +78,15 @@ object OdooHelper {
 
                 val innerArgs = JsonArray().apply {
                     add(Gson().toJsonTree(domain))
-                    if (fields != null) add(Gson().toJsonTree(fields))
                 }
                 add(innerArgs)
+                val kwargs = JsonObject().apply {
+                    if (fields != null) add("fields", Gson().toJsonTree(fields))
+                    addProperty("limit", limit)
+                    addProperty("order", order)
+                }
+                add(kwargs)
+
             }
 
             add("args", args)

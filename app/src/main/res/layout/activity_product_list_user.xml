@@ -108,7 +108,7 @@
                 android:layout_height="wrap_content"
                 android:text="Unicamente para Paredes"
                 android:textStyle="bold"
-                android:textSize="22sp"
+                android:textSize="28sp"
                 android:gravity="center"
                 android:padding="8dp"/>
 
@@ -141,7 +141,7 @@
                 android:layout_height="wrap_content"
                 android:text="Para pisos y paredes"
                 android:textStyle="bold"
-                android:textSize="22sp"
+                android:textSize="28sp"
                 android:gravity="center"
                 android:padding="8dp"/>
 
