@@ -3,46 +3,110 @@ package com.example.comfyapp
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.telecom.Call
 import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.IntentCompat
 import com.example.comfyapp.core.TemiController
 import com.example.comfyapp.databinding.ActivityTilesListBinding
 import com.robotemi.sdk.Robot
 import com.robotemi.sdk.TtsRequest
-
-
+import com.robotemi.sdk.navigation.model.SpeedLevel
 
 class TilesListActivity : AppCompatActivity() {
+
     private lateinit var binding: ActivityTilesListBinding
     private lateinit var robot: Robot
     private lateinit var temiController: TemiController
+
+    val puntos = listOf("home base")
+    var indicePunto = 0
+    var cicloActivo = true
+
+    private var yaTocado = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        robot = Robot.getInstance()
-        robot.speak(TtsRequest.create("¡Súper!. ¿Para dónde estás buscando estos productos?. Toca mi pantalla, y acompáñame",false))
+
         binding = ActivityTilesListBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        robot = Robot.getInstance()
+
+        // 🗣️ Mensaje inicial
+        robot.speak(
+            TtsRequest.create(
+                "¡Súper! ¿Para dónde estás buscando estos productos? Toca la pantalla y acompáñame.",
+                false
+            )
+        )
+
+        // 🎬 VIDEO AL ENTRAR
+        val uri = Uri.parse("android.resource://$packageName/${R.raw.tendenciasreve}")
+        binding.videoView.setVideoURI(uri)
+        binding.videoView.setOnPreparedListener { mp ->
+            mp.isLooping = true
+            binding.videoView.start()
+
+            val duracionVideo = mp.duration.toLong()
+            val tiempoEntrePuntos = duracionVideo / puntos.size
+
+            fun moverTemi(indice: Int) {
+                if (!cicloActivo || indice >= puntos.size) {
+                    binding.videoView.stopPlayback()
+                    binding.videoView.visibility = View.GONE
+                    return
+                }
+                robot.goTo(puntos[indice],true,false, SpeedLevel.MEDIUM,false, false)
+
+                // Programa siguiente movimiento solo si el ciclo sigue activo
+                binding.videoView.postDelayed({
+                    if (cicloActivo) moverTemi(indice + 1)
+                }, tiempoEntrePuntos)
+            }
+
+            moverTemi(indicePunto)
+        }
+
+        // 👆 TOQUE GLOBAL (solo una vez)
+        binding.touchOverlay.bringToFront()
+        binding.touchOverlay.setOnClickListener {
+            if (yaTocado) return@setOnClickListener
+            yaTocado = true
+
+            // Pausar y ocultar video
+            if (binding.videoView.isPlaying) binding.videoView.pause()
+            binding.videoView.visibility = View.GONE
+
+            // Hablar y moverse
+            robot.speak(TtsRequest.create("Perfecto, acompáñame.", false))
+            robot.goTo("pisos tipo madera")
+
+            // Ocultar overlay
+            binding.touchOverlay.visibility = View.GONE
+        }
+
+
+        // 🤖 Temi Controller
         temiController = TemiController(
             this,
             { status -> Log.d("TEMI", status) },
-            {
-                runOnUiThread {
-                    stopTrayectoVideo()
-                }
-            }
+            { runOnUiThread { stopTrayectoVideo() } }
         )
-
         temiController.start()
+
+        // 🔙 Back
         binding.imgbtnback.setOnClickListener {
             finish()
         }
+
+        // ================================
+        // 🔹 BOTONES (SIN CAMBIOS)
+        // ================================
+
         binding.btnbathrooms.setOnClickListener {
-            val localName= "pisos exteriores alfa"
-            robot.speak(TtsRequest.create("¡Perfecto!. Acompañame!",false))
-            temiController.goToLocation(localName)
+            robot.speak(TtsRequest.create("¡Perfecto!. Acompañame!", false))
+            temiController.goToLocation("pisos exteriores alfa")
+
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
             intent.putExtra("USED_IN_ID", arrayListOf(30))
@@ -53,10 +117,11 @@ class TilesListActivity : AppCompatActivity() {
             intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)
         }
+
         binding.btnKitchens.setOnClickListener {
-            val localName="pisos exteriores alfa"
             robot.speak(TtsRequest.create("¡Excelente!. Acompañame!", false))
-            temiController.goToLocation(localName)
+            temiController.goToLocation("pisos exteriores alfa")
+
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
             intent.putExtra("USED_IN_ID", arrayListOf(29))
@@ -67,12 +132,14 @@ class TilesListActivity : AppCompatActivity() {
             intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)
         }
+
         binding.btnZoneSocial.setOnClickListener {
             robot.speak(TtsRequest.create("¡Excelente!. Acompañame!", false))
             temiController.goToLocation("pisos exteriores alfa")
+
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
-            intent.putExtra("USED_IN_ID", arrayListOf(31,28,33))
+            intent.putExtra("USED_IN_ID", arrayListOf(31, 28, 33))
             intent.putExtra("tituloMenu", "Pisos y Paredes para Zonas Sociales")
             intent.putExtra("columnTitleOne", "Únicamente para Paredes")
             intent.putExtra("columnTitleTwo", "Para Pisos y Paredes")
@@ -80,9 +147,11 @@ class TilesListActivity : AppCompatActivity() {
             intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)
         }
+
         binding.btnExterior.setOnClickListener {
             robot.speak(TtsRequest.create("¡Excelente!. Acompañame!", false))
             temiController.goToLocation("pisos exteriores alfa")
+
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
             intent.putExtra("USED_IN_ID", arrayListOf(32))
@@ -93,21 +162,17 @@ class TilesListActivity : AppCompatActivity() {
             intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)
         }
-
-        binding.floatingMenu.btnPromos.setOnClickListener {
-           // val localName = "promosemana2"
-           // temiController.goToLocation(localName)
-        }
-
-
     }
+
+    override fun onResume() {
+        super.onResume()
+        yaTocado = false
+        binding.touchOverlay.visibility = View.VISIBLE
+        binding.videoView.start()
+    }
+
     private fun stopTrayectoVideo() {
         binding.videoView.stopPlayback()
         binding.videoView.visibility = View.GONE
-    }
-    override fun onResume(){
-        super.onResume()
-
-
     }
 }
