@@ -18,7 +18,7 @@ class TilesListActivity : AppCompatActivity() {
     private lateinit var robot: Robot
     private lateinit var temiController: TemiController
 
-    val puntos = listOf("home base")
+    val puntos = listOf("sanitarios corona")
     var indicePunto = 0
     var cicloActivo = true
 
@@ -32,7 +32,7 @@ class TilesListActivity : AppCompatActivity() {
 
         robot = Robot.getInstance()
 
-        // 🗣️ Mensaje inicial
+        //Mensaje inicial
         robot.speak(
             TtsRequest.create(
                 "¡Súper! ¿Para dónde estás buscando estos productos? Toca la pantalla y acompáñame.",
@@ -40,8 +40,8 @@ class TilesListActivity : AppCompatActivity() {
             )
         )
 
-        // 🎬 VIDEO AL ENTRAR
-        val uri = Uri.parse("android.resource://$packageName/${R.raw.tendenciasreve}")
+        // VIDEO AL ENTRAR
+        val uri = Uri.parse("android.resource://$packageName/${R.raw.tendenrevestimientos}")
         binding.videoView.setVideoURI(uri)
         binding.videoView.setOnPreparedListener { mp ->
             mp.isLooping = true
@@ -67,7 +67,7 @@ class TilesListActivity : AppCompatActivity() {
             moverTemi(indicePunto)
         }
 
-        // 👆 TOQUE GLOBAL (solo una vez)
+        // TOQUE GLOBAL (solo una vez)
         binding.touchOverlay.bringToFront()
         binding.touchOverlay.setOnClickListener {
             if (yaTocado) return@setOnClickListener
@@ -78,15 +78,15 @@ class TilesListActivity : AppCompatActivity() {
             binding.videoView.visibility = View.GONE
 
             // Hablar y moverse
-            robot.speak(TtsRequest.create("Perfecto, acompáñame.", false))
-            robot.goTo("pisos tipo madera")
+            robot.speak(TtsRequest.create("Perfecto, acompáñame y te mostraré las últimas tendencias de revestimientos.", false))
+            robot.goTo("pisos tipo madera", true)
 
             // Ocultar overlay
             binding.touchOverlay.visibility = View.GONE
         }
 
 
-        // 🤖 Temi Controller
+        // Temi Controller
         temiController = TemiController(
             this,
             { status -> Log.d("TEMI", status) },
@@ -94,14 +94,11 @@ class TilesListActivity : AppCompatActivity() {
         )
         temiController.start()
 
-        // 🔙 Back
+        // Back
         binding.imgbtnback.setOnClickListener {
             finish()
         }
 
-        // ================================
-        // 🔹 BOTONES (SIN CAMBIOS)
-        // ================================
 
         binding.btnbathrooms.setOnClickListener {
             robot.speak(TtsRequest.create("¡Perfecto!. Acompañame!", false))

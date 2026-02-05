@@ -88,6 +88,7 @@ class TemiController(
             last_location = location
             onArrived?.invoke()
             last_location = location
+            robot.speak(TtsRequest.create("Aquí puedes ver las ultimas tendencias para la zona que seleccioanste", false))
             if (!executeSequences) return // si es false, no hace nada más
 
             val sequenceName = when {
