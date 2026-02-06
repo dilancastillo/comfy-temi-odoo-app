@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import com.example.comfyapp.core.TemiApp
 import com.example.comfyapp.core.TemiController
 import com.example.comfyapp.databinding.ActivityTilesListBinding
 import com.robotemi.sdk.Robot
@@ -41,56 +42,59 @@ class TilesListActivity : AppCompatActivity() {
         )
 
         // VIDEO AL ENTRAR
-        val uri = Uri.parse("android.resource://$packageName/${R.raw.tendenrevestimientos}")
-        binding.videoView.setVideoURI(uri)
-        binding.videoView.setOnPreparedListener { mp ->
-            mp.isLooping = true
-            binding.videoView.start()
-
-            val duracionVideo = mp.duration.toLong()
-            val tiempoEntrePuntos = duracionVideo / puntos.size
-
-            fun moverTemi(indice: Int) {
-                if (!cicloActivo || indice >= puntos.size) {
-                    binding.videoView.stopPlayback()
-                    binding.videoView.visibility = View.GONE
-                    return
-                }
-                robot.goTo(puntos[indice],true,false, SpeedLevel.MEDIUM,false, false)
-
-                // Programa siguiente movimiento solo si el ciclo sigue activo
-                binding.videoView.postDelayed({
-                    if (cicloActivo) moverTemi(indice + 1)
-                }, tiempoEntrePuntos)
-            }
-
-            moverTemi(indicePunto)
-        }
+//        val uri = Uri.parse("android.resource://$packageName/${R.raw.tendenrevestimientos}")
+//        binding.videoView.setVideoURI(uri)
+//        binding.videoView.setOnPreparedListener { mp ->
+//            mp.isLooping = true
+//            binding.videoView.start()
+//
+//            val duracionVideo = mp.duration.toLong()
+//            val tiempoEntrePuntos = duracionVideo / puntos.size
+//
+//            fun moverTemi(indice: Int) {
+//                if (!cicloActivo || indice >= puntos.size) {
+//                    binding.videoView.stopPlayback()
+//                    binding.videoView.visibility = View.GONE
+//                    return
+//                }
+//                robot.goTo(puntos[indice],true,false, SpeedLevel.MEDIUM,false, false)
+//
+//                // Programa siguiente movimiento solo si el ciclo sigue activo
+//                binding.videoView.postDelayed({
+//                    if (cicloActivo) moverTemi(indice + 1)
+//                }, tiempoEntrePuntos)
+//            }
+//
+//            moverTemi(indicePunto)
+//        }
 
         // TOQUE GLOBAL (solo una vez)
-        binding.touchOverlay.bringToFront()
-        binding.touchOverlay.setOnClickListener {
-            if (yaTocado) return@setOnClickListener
-            yaTocado = true
-
-            // Pausar y ocultar video
-            if (binding.videoView.isPlaying) binding.videoView.pause()
-            binding.videoView.visibility = View.GONE
-
-            // Hablar y moverse
-            robot.speak(TtsRequest.create("Perfecto, acompáñame y te mostraré las últimas tendencias de revestimientos.", false))
-            robot.goTo("pisos tipo madera", true)
-
-            // Ocultar overlay
-            binding.touchOverlay.visibility = View.GONE
-        }
+//        binding.touchOverlay.bringToFront()
+//        binding.touchOverlay.setOnClickListener {
+//            if (yaTocado) return@setOnClickListener
+//            yaTocado = true
+//
+//            // Pausar y ocultar video
+//            if (binding.videoView.isPlaying) binding.videoView.pause()
+//            binding.videoView.visibility = View.GONE
+//
+//            // Hablar y moverse
+//            robot.speak(TtsRequest.create("Perfecto, acompáñame y te mostraré las últimas tendencias de revestimientos.", false))
+//            robot.goTo("pisos tipo madera", true)
+//
+//            // Ocultar overlay
+//            binding.touchOverlay.visibility = View.GONE
+//        }
 
 
         // Temi Controller
         temiController = TemiController(
             this,
             { status -> Log.d("TEMI", status) },
-            { runOnUiThread { stopTrayectoVideo() } }
+            {
+                runOnUiThread {
+                    //stopTrayectoVideo()
+                } }
         )
         temiController.start()
 
@@ -164,12 +168,17 @@ class TilesListActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         yaTocado = false
-        binding.touchOverlay.visibility = View.VISIBLE
-        binding.videoView.start()
+       // binding.touchOverlay.visibility = View.VISIBLE
+        //binding.videoView.start()
     }
 
-    private fun stopTrayectoVideo() {
-        binding.videoView.stopPlayback()
-        binding.videoView.visibility = View.GONE
+//    private fun stopTrayectoVideo() {
+//        binding.videoView.stopPlayback()
+//        binding.videoView.visibility = View.GONE
+//    }
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        TemiApp.temiController?.notifyUserInteraction()
     }
+
 }

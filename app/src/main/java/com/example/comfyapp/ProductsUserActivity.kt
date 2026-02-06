@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
+import com.example.comfyapp.core.TemiApp
 import com.example.comfyapp.core.TemiController
 import com.example.comfyapp.databinding.ActivityProductsUserBinding
 import com.robotemi.sdk.Robot
@@ -30,6 +31,7 @@ class ProductsUserActivity : AppCompatActivity() {
 
             }
         )
+        TemiApp.temiController = temiController
 
         temiController.start()
         binding.btnRevestimientos.setOnClickListener {
@@ -73,4 +75,9 @@ class ProductsUserActivity : AppCompatActivity() {
     override fun onResume(){
         super.onResume()
         }
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        TemiApp.temiController?.notifyUserInteraction()
+    }
+
 }

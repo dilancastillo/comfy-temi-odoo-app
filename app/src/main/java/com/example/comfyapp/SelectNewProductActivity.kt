@@ -328,4 +328,5 @@ class SelectNewProductActivity : AppCompatActivity() {
         binding.fragmentContainer2.visibility = if (show) View.INVISIBLE else View.VISIBLE
     }
 
+
 }

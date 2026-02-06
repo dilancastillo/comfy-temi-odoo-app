@@ -10,6 +10,7 @@ import com.robotemi.sdk.TtsRequest
 import com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener
 import com.robotemi.sdk.listeners.OnRobotReadyListener
 import com.robotemi.sdk.navigation.model.SpeedLevel
+//import kotlinx.coroutines.Runnable
 
 
 class TemiController(
@@ -24,10 +25,18 @@ class TemiController(
     var last_location: String? = null
         private set
     var executeSequences = true
+    private val inactivityHandler = Handler(Looper.getMainLooper())
+    private var inactivityRunnable: Runnable? = null
+    private var isAtHomeBase = false
+    private val hourlyHandler = Handler(Looper.getMainLooper())
+    private var hourlyRunnable: Runnable? = null
+    private var abortExpectedFromUser = false
+    private var navigationStartedByUser = false
 
 
     companion object {
         private const val TAG = "TemiController"
+        private const val INACTIVITY_TIMEOUT = 2 * 60 * 1000L
     }
 
     fun start() {
@@ -69,8 +78,6 @@ class TemiController(
 
         //robot.goTo(target)
        //
-
-
     }
 
     override fun onGoToLocationStatusChanged(
@@ -83,12 +90,21 @@ class TemiController(
 
         if (status == "complete") {
             robot.cancelAllTtsRequests()
+
             LocationEventManager.notifyLocationArrived(location)
-            onArrived?.invoke()
             last_location = location
             onArrived?.invoke()
-            last_location = location
             robot.speak(TtsRequest.create("Aquí puedes ver las ultimas tendencias para la zona que seleccioanste", false))
+
+            if (location.equals("home base", ignoreCase = true)) {
+                Log.d(TAG, "Temi llegó a Home Base → se cancela contador")
+                isAtHomeBase = true
+                cancelInactivityTimer()
+                return
+            }
+            isAtHomeBase = false
+            resetInactivityTimer()
+
             if (!executeSequences) return // si es false, no hace nada más
 
             val sequenceName = when {
@@ -110,11 +126,29 @@ class TemiController(
                         ejecutarSequence(seq)
                 }, 1)
             }
-
-
-
-
         }
+        if (status == "abort") {
+
+            if (abortExpectedFromUser) {
+                Log.d(TAG, "Abort por interacción humana")
+
+                robot.speak(
+                    TtsRequest.create(
+                        "¿En qué te puedo ayudar? Toca alguna opción en mi pantalla y te guiaré",
+                        true
+                    )
+                )
+
+                resetInactivityTimer()
+            } else {
+                Log.d(TAG, "Abort técnico (obstáculo / sistema / scheduler)")
+                goToLocation("home base")
+            }
+
+            abortExpectedFromUser = false
+            navigationStartedByUser = false
+        }
+
     }
 
     private fun ejecutarSequence(sequenceName: String) {
@@ -145,8 +179,77 @@ class TemiController(
     fun playSequence(sequenceName: String) {
         ejecutarSequence(sequenceName)
     }
+    fun notifyUserInteraction() {
+        abortExpectedFromUser = true
+        navigationStartedByUser = true
+        hourlyRunnable?.let {
+            hourlyHandler.removeCallbacks(it)
+            hourlyRunnable = null
+        }
+
+        if (isAtHomeBase) {
+            isAtHomeBase = false
+        }
+
+        resetInactivityTimer()
+    }
+    private fun goToAutoLocation(location: String) {
+        navigationStartedByUser = false
+        abortExpectedFromUser = false
+        goToLocation(location)
+    }
+
+
+
 
     private fun toast(msg: String) {
         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
     }
+    private fun resetInactivityTimer(){
+        inactivityRunnable?.let {
+            inactivityHandler.removeCallbacks (it)
+        }
+        inactivityRunnable = Runnable {
+            Log.d(TAG,"Inactividad  detectada, volver a centro sala")
+            robot.speak(TtsRequest.create("Graias por interactuar conmigo,regresaré a Centro Sala", false))
+            goToLocation("home base")
+        }
+
+        inactivityHandler.postDelayed(inactivityRunnable!!, INACTIVITY_TIMEOUT)
+    }
+    private fun cancelInactivityTimer() {
+        inactivityRunnable?.let {
+            inactivityHandler.removeCallbacks(it)
+        }
+        inactivityRunnable = null
+    }
+    //hacer algo en determinado timepo
+//    fun startHourlyScheduleIfNeeded() {
+//        val now = java.util.Calendar.getInstance()
+//        val hour = now.get(java.util.Calendar.HOUR_OF_DAY)
+//
+//        // Solo entre 12 y 17
+//        if (hour !in 12..17) {
+//            Log.d(TAG, "Fuera del horario automático")
+//            return
+//        }
+//
+//
+//        val millisToNextHour =
+//            (60 - now.get(java.util.Calendar.MINUTE)) * 60 * 1000L -
+//                    now.get(java.util.Calendar.SECOND) * 1000L
+//
+//        Log.d(TAG, "Programando recorrido en $millisToNextHour ms")
+//
+//        hourlyRunnable?.let { hourlyHandler.removeCallbacks(it) }
+//
+//        hourlyRunnable = Runnable {
+//            Log.d(TAG, "Hora exacta → iniciar recorrido automático")
+//
+//            // Reprogramar para la siguiente hora
+//            startHourlyScheduleIfNeeded()
+//        }
+//
+//        hourlyHandler.postDelayed(hourlyRunnable!!, millisToNextHour)
+//    }
 }
