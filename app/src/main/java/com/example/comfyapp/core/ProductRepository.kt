@@ -199,15 +199,10 @@ object ProductRepository {
             }
         }
         val domain = listOf(
-            "|",
-                listOf("child_category", "=", "CERAMICA"),
-                listOf("child_category", "=", "PORCELANATO"),
             listOf("x_traffic","!=","Pared"),
-            listOf("grandchild_category", "!=", "EXTERIORES"),
-            listOf("grandchild_category", "!=", "FACHADAS"),
             listOf("location_id.complete_name", "ilike", locationName),
             listOf("free_qty", ">", 10),
-            listOf("x_studio_app_robot", "=", "true"),
+            listOf("active_robot", "=", "true"),
             listOf("website_published", "=", true),
             listOf("used_in_ids", "in", usedInId),
         )
@@ -226,7 +221,7 @@ object ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 15,
+            limit = 8.,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
@@ -279,15 +274,10 @@ object ProductRepository {
             }
         }
         val domain = listOf(
-            "|",
-                listOf("child_category", "=", "CERAMICA"),
-                listOf("child_category", "=", "PORCELANATO"),
             listOf("x_traffic","=","Pared"),
-            listOf("grandchild_category", "!=", "EXTERIORES"),
-            listOf("grandchild_category", "!=", "FACHADAS"),
             listOf("location_id.complete_name", "ilike", locationName),
             listOf("free_qty", ">", 10),
-            listOf("x_studio_app_robot", "=", "true"),
+            listOf("active_robot", "=", "true"),
             listOf("website_published", "=", true),
             listOf("used_in_ids", "in", usedInId),
         )
@@ -306,7 +296,7 @@ object ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 15,
+            limit = 8,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
@@ -379,7 +369,7 @@ object ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 15,
+            limit = 8,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
@@ -453,7 +443,7 @@ object ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 15,
+            limit = 8,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {

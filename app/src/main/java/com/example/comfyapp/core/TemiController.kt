@@ -32,11 +32,13 @@ class TemiController(
     private var hourlyRunnable: Runnable? = null
     private var abortExpectedFromUser = false
     private var navigationStartedByUser = false
+    private var arrivedHomeByInactivity = false
+
 
 
     companion object {
         private const val TAG = "TemiController"
-        private const val INACTIVITY_TIMEOUT = 2 * 60 * 1000L
+        private const val INACTIVITY_TIMEOUT = 1 * 60 * 1000L
     }
 
     fun start() {
@@ -97,9 +99,19 @@ class TemiController(
             robot.speak(TtsRequest.create("Aquí puedes ver las ultimas tendencias para la zona que seleccioanste", false))
 
             if (location.equals("home base", ignoreCase = true)) {
-                Log.d(TAG, "Temi llegó a Home Base → se cancela contador")
+
+                Log.d(TAG, "Llegó a Home Base")
+
                 isAtHomeBase = true
                 cancelInactivityTimer()
+
+                //CLAVE
+                if (arrivedHomeByInactivity) {
+                    Log.d(TAG, "Home Base por inactividad → NO reactivar contador")
+                    arrivedHomeByInactivity = false
+                    return
+                }
+
                 return
             }
             isAtHomeBase = false
@@ -142,7 +154,7 @@ class TemiController(
                 resetInactivityTimer()
             } else {
                 Log.d(TAG, "Abort técnico (obstáculo / sistema / scheduler)")
-                goToLocation("home base")
+                //goToLocation("home base")
             }
 
             abortExpectedFromUser = false
@@ -205,18 +217,31 @@ class TemiController(
     private fun toast(msg: String) {
         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
     }
-    private fun resetInactivityTimer(){
-        inactivityRunnable?.let {
-            inactivityHandler.removeCallbacks (it)
-        }
+    private fun resetInactivityTimer() {
+        cancelInactivityTimer()
+
         inactivityRunnable = Runnable {
-            Log.d(TAG,"Inactividad  detectada, volver a centro sala")
-            robot.speak(TtsRequest.create("Graias por interactuar conmigo,regresaré a Centro Sala", false))
+
+            if (isAtHomeBase) return@Runnable
+
+            Log.d(TAG, "Inactividad detectada → volver a Home Base")
+
+            arrivedHomeByInactivity = true
+
+            robot.cancelAllTtsRequests()
+            robot.speak(
+                TtsRequest.create(
+                    "Gracias por interactuar conmigo, regresaré a Centro Sala",
+                    false
+                )
+            )
+
             goToLocation("home base")
         }
 
         inactivityHandler.postDelayed(inactivityRunnable!!, INACTIVITY_TIMEOUT)
     }
+
     private fun cancelInactivityTimer() {
         inactivityRunnable?.let {
             inactivityHandler.removeCallbacks(it)

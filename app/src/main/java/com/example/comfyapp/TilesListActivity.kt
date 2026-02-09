@@ -110,7 +110,7 @@ class TilesListActivity : AppCompatActivity() {
 
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
-            intent.putExtra("USED_IN_ID", arrayListOf(30))
+            intent.putExtra("USED_IN_ID", arrayListOf(15))
             intent.putExtra("tituloMenu", "Pisos y paredes para Baños y zonas húmedas")
             intent.putExtra("columnTitleOne", "Únicamente para Paredes")
             intent.putExtra("columnTitleTwo", "Para Pisos y Paredes")
@@ -125,7 +125,7 @@ class TilesListActivity : AppCompatActivity() {
 
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
-            intent.putExtra("USED_IN_ID", arrayListOf(29))
+            intent.putExtra("USED_IN_ID", arrayListOf(14))
             intent.putExtra("tituloMenu", "Pisos y paredes para Cocinas")
             intent.putExtra("columnTitleOne", "Únicamente para Paredes")
             intent.putExtra("columnTitleTwo", "Para Pisos y Paredes")
@@ -140,7 +140,7 @@ class TilesListActivity : AppCompatActivity() {
 
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
-            intent.putExtra("USED_IN_ID", arrayListOf(31, 28, 33))
+            intent.putExtra("USED_IN_ID", arrayListOf(24, 13, 18))
             intent.putExtra("tituloMenu", "Pisos y Paredes para Zonas Sociales")
             intent.putExtra("columnTitleOne", "Únicamente para Paredes")
             intent.putExtra("columnTitleTwo", "Para Pisos y Paredes")
@@ -155,7 +155,7 @@ class TilesListActivity : AppCompatActivity() {
 
             val intent = Intent(this, ProductListUser::class.java)
             intent.putExtra("QUERY_TYPE", ProductListUser.ProductQueryType.FloorAndWall.name)
-            intent.putExtra("USED_IN_ID", arrayListOf(32))
+            intent.putExtra("USED_IN_ID", arrayListOf(17))
             intent.putExtra("tituloMenu", "Pisos y Paredes para Exteriores")
             intent.putExtra("columnTitleOne", "Únicamente para Paredes")
             intent.putExtra("columnTitleTwo", "Para Pisos y Paredes")
