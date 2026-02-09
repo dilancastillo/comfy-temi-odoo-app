@@ -221,7 +221,7 @@ object ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 8.,
+            limit = 8,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
