@@ -68,6 +68,16 @@ class TemiController(
             toast("Ubicación no existe: $target")
             return
         }
+        cancelInactivityTimer()
+
+        hourlyRunnable?.let {
+            hourlyHandler.removeCallbacks(it)
+            hourlyRunnable = null
+        }
+
+        isAtHomeBase = false
+        navigationStartedByUser = true
+        abortExpectedFromUser = false
 
         if(target.contains("promosemana1")||target.contains("promosemana")){
 
@@ -96,18 +106,29 @@ class TemiController(
             LocationEventManager.notifyLocationArrived(location)
             last_location = location
             onArrived?.invoke()
-            robot.speak(TtsRequest.create("Aquí puedes ver las ultimas tendencias para la zona que seleccioanste", false))
+            val isHomeBase = location.equals("home base", ignoreCase = true)
+            val isCentroSala = location.equals("centro sala", ignoreCase = true)
 
-            if (location.equals("home base", ignoreCase = true)) {
+            // Solo habla si NO es Home Base ni Centro Sala
+            if (!isHomeBase && !isCentroSala) {
+                robot.speak(
+                    TtsRequest.create(
+                        "Aquí puedes ver las últimas tendencias para la zona que seleccionaste",
+                        false
+                    )
+                )
+            }
 
-                Log.d(TAG, "Llegó a Home Base")
+            if (location.equals("centro sala", ignoreCase = true)) {
+
+                Log.d(TAG, "Llegó a centro salaz")
 
                 isAtHomeBase = true
                 cancelInactivityTimer()
 
                 //CLAVE
                 if (arrivedHomeByInactivity) {
-                    Log.d(TAG, "Home Base por inactividad → NO reactivar contador")
+                    Log.d(TAG, "cemntro sala por inactividad → NO reactivar contador")
                     arrivedHomeByInactivity = false
                     return
                 }
@@ -147,7 +168,7 @@ class TemiController(
                 robot.speak(
                     TtsRequest.create(
                         "¿En qué te puedo ayudar? Toca alguna opción en mi pantalla y te guiaré",
-                        true
+                        false
                     )
                 )
 
@@ -192,6 +213,7 @@ class TemiController(
         ejecutarSequence(sequenceName)
     }
     fun notifyUserInteraction() {
+        Log.w(TAG, "notifyUserInteraction()")
         abortExpectedFromUser = true
         navigationStartedByUser = true
         hourlyRunnable?.let {
@@ -224,7 +246,7 @@ class TemiController(
 
             if (isAtHomeBase) return@Runnable
 
-            Log.d(TAG, "Inactividad detectada → volver a Home Base")
+            Log.d(TAG, "Inactividad detectada → volver a centro sala")
 
             arrivedHomeByInactivity = true
 
@@ -236,7 +258,7 @@ class TemiController(
                 )
             )
 
-            goToLocation("home base")
+            goToLocation("centro sala")
         }
 
         inactivityHandler.postDelayed(inactivityRunnable!!, INACTIVITY_TIMEOUT)
