@@ -3,48 +3,21 @@ package com.example.comfyapp
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
-import javax.net.ssl.*
 
 object OdooHelper {
-    const val BASE_URL = "https://www.comfer.co/"
+    const val BASE_URL = BuildConfig.ODOO_BASE_URL
 
     // ---------------------------------------------------------
-    // CLIENTE SSL INSEGURO (solo para STAGING)
-    // ---------------------------------------------------------
-    fun createUnsafeClient(): OkHttpClient {
-        val trustAllCerts = arrayOf<TrustManager>(
-            object : X509TrustManager {
-                override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-                override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-            }
-        )
-
-        val sslContext = SSLContext.getInstance("SSL")
-        sslContext.init(null, trustAllCerts, SecureRandom())
-        val sslSocketFactory = sslContext.socketFactory
-
-        return OkHttpClient.Builder()
-            .sslSocketFactory(sslSocketFactory, trustAllCerts[0] as X509TrustManager)
-            .hostnameVerifier { _, _ -> true }
-            .build()
-    }
-
-    // ---------------------------------------------------------
-    // RETROFIT usando SSL inseguro
+    // RETROFIT seguro usando HTTPS
     // ---------------------------------------------------------
     private val odooApi: OdooApi by lazy {
         Retrofit.Builder()
-            .baseUrl("https://www.comfer.co/")
-            .client(createUnsafeClient())
+            .baseUrl(BuildConfig.ODOO_BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(OdooApi::class.java)
@@ -70,9 +43,9 @@ object OdooHelper {
             addProperty("method", "execute_kw")
 
             val args = JsonArray().apply {
-                add("***REMOVED***")     // DB
-                add(2)                             // UID
-                add("REMOVED") // API KEY
+                add(BuildConfig.ODOO_DB)      // DB desde local.properties
+                add(BuildConfig.ODOO_UID.toInt()) // UID desde local.properties
+                add(BuildConfig.ODOO_API_KEY) // API KEY desde local.properties
                 add(model)
                 add(method)
 

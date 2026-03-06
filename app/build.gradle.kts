@@ -1,20 +1,40 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+val localProps = Properties()
+val localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    FileInputStream(localPropsFile).use { localProps.load(it) }
+}
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
 }
 
 android {
+    buildFeatures {
+        buildConfig = true
+        viewBinding = true
+    }
     namespace = "com.example.comfyapp"
     compileSdk = 36
 
     defaultConfig {
+
         applicationId = "com.example.comfyapp"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Credenciales desde local.properties
+        buildConfigField("String", "ODOO_BASE_URL", "\"${localProps.getProperty("ODOO_BASE_URL")}\"")
+        buildConfigField("String", "ODOO_DB",       "\"${localProps.getProperty("ODOO_DB")}\"")
+        buildConfigField("int",    "ODOO_UID",      localProps.getProperty("ODOO_UID"))
+        buildConfigField("String", "ODOO_API_KEY",  "\"${localProps.getProperty("ODOO_API_KEY")}\"")
+
     }
 
     buildTypes {
@@ -32,9 +52,6 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
-    }
-    buildFeatures {
-        viewBinding = true
     }
 }
 

@@ -11,7 +11,6 @@ import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.comfyapp.OdooHelper.BASE_URL
 import com.example.comfyapp.core.TemiController
 import com.example.comfyapp.databinding.SelectNewProductBinding
 import java.math.BigDecimal
@@ -247,7 +246,7 @@ class SelectNewProductActivity : AppCompatActivity() {
                                     id = obj["id"].asInt,
                                     name = obj["name"].asString,
                                     price = obj["list_price"].asDouble,
-                                    imageUrl = "$BASE_URL/web/image/product.product/$productId/image_512",
+                                    imageUrl = "${BuildConfig.ODOO_BASE_URL}/web/image/product.product/$productId/image_512",
                                     stock = BigDecimal(obj["qty_available"].asDouble)
                                         .setScale(2, RoundingMode.HALF_UP)
                                         .toDouble(),
