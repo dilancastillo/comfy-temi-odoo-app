@@ -1,3 +1,4 @@
+// controla la navegacion la voz y los eventos principales del robot temi
 package com.example.comfyapp.core
 
 import android.content.Context

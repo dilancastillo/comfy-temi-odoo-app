@@ -1,3 +1,4 @@
+// contiene una prueba unitaria basica para validar la configuracion del proyecto
 package com.example.comfyapp
 
 import org.junit.Test

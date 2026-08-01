@@ -1,3 +1,4 @@
+// verifica que la aplicacion use el paquete esperado dentro de un dispositivo android
 package com.example.comfyapp
 
 import androidx.test.platform.app.InstrumentationRegistry

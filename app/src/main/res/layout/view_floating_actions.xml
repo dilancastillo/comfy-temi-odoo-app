@@ -15,20 +15,6 @@
         android:layout_marginBottom="24dp">
 
         <ImageButton
-            android:id="@+id/btnPromos"
-            android:layout_width="92dp"
-            android:layout_height="92dp"
-            android:src="@drawable/icon_promotionbtn"
-            android:background="@android:color/transparent"
-            android:scaleType="centerInside"
-            android:contentDescription="Promociones"
-            android:elevation="20dp"/>
-
-        <View
-            android:layout_width="1dp"
-            android:layout_height="16dp"/>
-
-        <ImageButton
             android:id="@+id/btnHablar"
             android:layout_width="92dp"
             android:layout_height="92dp"

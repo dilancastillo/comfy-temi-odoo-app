@@ -1,3 +1,4 @@
+// muestra la pagina web de un producto y permite cerrarla o navegar hacia atras
 package com.example.comfyapp
 
 import android.os.Bundle

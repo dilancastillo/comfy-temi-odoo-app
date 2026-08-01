@@ -25,30 +25,19 @@
         android:theme="@style/Theme.ComfyApp"
         android:usesCleartextTraffic="true">
         <activity
-            android:name=".SpinnerActivity"
+            android:name=".ui.products.list.ProductListUserActivity"
             android:exported="false" />
         <activity
-            android:name=".ProductListUser"
+            android:name=".ui.products.tiles.TilesListActivity"
             android:exported="false" />
         <activity
-            android:name=".TilesListActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ProductsUserActivity"
-            android:exported="false" />
-        <activity
-            android:name=".HomeUserActivity"
+            android:name=".ui.products.category.ProductsUserActivity"
             android:exported="false" />
         <activity
             android:name=".WebViewActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
-        <activity
-            android:name=".PromotionsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".SelectPromoActivity"
-            android:exported="false" /> <!-- Metadata para permisos de Temi -->
+        <!-- Metadata para permisos de Temi -->
         <meta-data
             android:name="@string/metadata_permissions"
             android:value="com.robotemi.permission.sequence,com.robotemi.permission.map,com.robotemi.permission.settings,com.robotemi.permission.navigation" /> <!-- Metadata para configurar como Skill de Temi -->
@@ -74,24 +63,10 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".NewProductsActivity"
-            android:screenOrientation="landscape" />
-        <activity
-            android:name=".SelectNewProductActivity"
-            android:screenOrientation="landscape" />
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:launchMode="singleTask"
-            android:screenOrientation="landscape" /> <!-- Servicio MQTT para background -->
+        <!-- Servicio MQTT para background -->
         <service
             android:name="org.eclipse.paho.android.service.MqttService"
             android:exported="false" />
-        <service
-            android:name=".RepositionJobService"
-            android:exported="false"
-            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 
 </manifest>

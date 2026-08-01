@@ -1,3 +1,4 @@
+// conecta la aplicacion con el broker mqtt y entrega los mensajes recibidos
 package com.example.comfyapp.core
 
 import android.util.Log

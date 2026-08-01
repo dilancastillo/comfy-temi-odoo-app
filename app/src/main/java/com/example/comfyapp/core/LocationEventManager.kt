@@ -1,3 +1,4 @@
+// comunica la llegada del robot a una ubicacion con las pantallas interesadas
 package com.example.comfyapp.core
 
 import androidx.lifecycle.LiveData

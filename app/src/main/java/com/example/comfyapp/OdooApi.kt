@@ -1,3 +1,4 @@
+// declara el punto de acceso retrofit usado para enviar solicitudes json rpc a odoo
 package com.example.comfyapp
 
 import com.google.gson.JsonObject

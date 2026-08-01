@@ -1,3 +1,4 @@
+// construye y procesa las solicitudes json rpc utilizadas para consultar odoo
 package com.example.comfyapp
 
 import com.google.gson.Gson

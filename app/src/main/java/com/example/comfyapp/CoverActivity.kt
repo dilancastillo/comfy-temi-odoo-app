@@ -1,3 +1,4 @@
+// presenta la entrada principal y permite iniciar el flujo de atencion al cliente
 package com.example.comfyapp
 
 import android.content.Intent
@@ -8,6 +9,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.comfyapp.core.MqttController
 import com.example.comfyapp.core.TemiController
+import com.example.comfyapp.ui.products.category.ProductsUserActivity
 import com.example.comfyapp.databinding.ActivityCoverBinding
 import com.robotemi.sdk.Robot
 import com.robotemi.sdk.TtsRequest
@@ -50,18 +52,8 @@ class CoverActivity : AppCompatActivity() {
         // Iniciar Temi
         temiController.start()
 
-        /*binding.btnEmpezar.setOnClickListener {
-            startActivity(Intent(this, MainActivity::class.java))
-        }*/
-
-        binding.btnNewProducts.setOnClickListener {
-            startActivity(Intent(this, NewProductsActivity::class.java))
-        }
         binding.btnclient.setOnClickListener {
             startActivity(Intent(this, ProductsUserActivity::class.java))
-        }
-        binding.card4.setOnClickListener {
-            startActivity(Intent(this, SpinnerActivity::class.java))
         }
 
         val btnBack = findViewById<ImageView>(R.id.imgbexit)
