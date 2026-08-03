@@ -21,5 +21,7 @@ class TemiRobotRepository(
 
     override fun goToLocation(location: String) = TemiSessionManager.goToLocation(location)
 
+    override fun cancelNavigationByUser() = TemiSessionManager.cancelNavigationByUser()
+
     override fun notifyUserInteraction() = TemiSessionManager.notifyUserInteraction()
 }

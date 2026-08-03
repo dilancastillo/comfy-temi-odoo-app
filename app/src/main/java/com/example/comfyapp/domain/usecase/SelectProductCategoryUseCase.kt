@@ -8,8 +8,8 @@ class SelectProductCategoryUseCase(
     private val robotRepository: RobotRepository
 ) {
     operator fun invoke(request: ProductListRequest, speech: String): ProductListRequest {
-        robotRepository.speak(speech)
-        robotRepository.goToLocation(request.robotLocation)
-        return request
+        val navigationStarted = robotRepository.goToLocation(request.robotLocation)
+        if (navigationStarted) robotRepository.speak(speech)
+        return request.copy(showTravelVideo = navigationStarted)
     }
 }

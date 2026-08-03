@@ -120,7 +120,11 @@ private class FakeRobotRepository : RobotRepository {
     override fun start() = Unit
     override fun stop() = Unit
     override fun speak(message: String) = Unit
-    override fun goToLocation(location: String) { lastLocation = location }
+    override fun goToLocation(location: String): Boolean {
+        lastLocation = location
+        return true
+    }
+    override fun cancelNavigationByUser() = Unit
     override fun notifyUserInteraction() = Unit
 }
 

@@ -5,6 +5,7 @@ interface RobotRepository {
     fun start()
     fun stop()
     fun speak(message: String)
-    fun goToLocation(location: String)
+    fun goToLocation(location: String): Boolean
+    fun cancelNavigationByUser()
     fun notifyUserInteraction()
 }

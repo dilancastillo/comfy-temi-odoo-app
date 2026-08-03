@@ -20,6 +20,7 @@ import com.example.comfyapp.domain.model.ProductListRequest
 import com.example.comfyapp.domain.model.ProductVideo
 import com.example.comfyapp.ui.SimpleViewModelFactory
 import com.example.comfyapp.robot.TemiRobotRepository
+import com.example.comfyapp.robot.TemiSessionManager
 import com.example.comfyapp.ui.RobotInactivityNavigator
 
 class ProductListUserActivity : AppCompatActivity() {
@@ -30,6 +31,7 @@ class ProductListUserActivity : AppCompatActivity() {
     private val secondColumnFragment = ProductListFragment.newInstance()
     private val robotRepository by lazy { TemiRobotRepository(applicationContext) }
     private val inactivityNavigator by lazy { RobotInactivityNavigator(this) }
+    private val navigationFailureListener: () -> Unit = { closeVideoOverlay() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,11 +65,13 @@ class ProductListUserActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         inactivityNavigator.start()
+        TemiSessionManager.addNavigationFailureListener(navigationFailureListener)
         robotRepository.start()
     }
 
     override fun onStop() {
         inactivityNavigator.stop()
+        TemiSessionManager.removeNavigationFailureListener(navigationFailureListener)
         robotRepository.stop()
         super.onStop()
     }
@@ -81,12 +85,15 @@ class ProductListUserActivity : AppCompatActivity() {
         tituloMenu.text = request.title
         ColumntitleOne.text = request.firstColumnTitle
         ColumntitleTwo.text = request.secondColumnTitle
-        showVideoOverlay(request.video.toRawResource())
+        if (request.showTravelVideo) showVideoOverlay(request.video.toRawResource())
     }
 
     private fun bindActions() {
         binding.imgbtnback.setOnClickListener { finish() }
-        binding.btnCloseVideo.setOnClickListener { closeVideoOverlay() }
+        binding.btnCloseVideo.setOnClickListener {
+            closeVideoOverlay()
+            robotRepository.cancelNavigationByUser()
+        }
     }
 
     private fun setupProductColumns() {

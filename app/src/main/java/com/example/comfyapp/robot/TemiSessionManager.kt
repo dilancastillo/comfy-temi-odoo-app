@@ -13,6 +13,7 @@ object TemiSessionManager {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val returnListeners = CopyOnWriteArraySet<() -> Unit>()
+    private val navigationFailureListeners = CopyOnWriteArraySet<() -> Unit>()
     private var controller: TemiController? = null
 
     @Synchronized
@@ -21,14 +22,17 @@ object TemiSessionManager {
             controller = TemiController(
                 context = context.applicationContext,
                 onStatus = onStatus,
-                onReturnedByInactivity = ::notifyReturnedByInactivity
+                onReturnedByInactivity = ::notifyReturnedByInactivity,
+                onNavigationFailed = ::notifyNavigationFailed
             )
         }
         controller?.start()
     }
 
-    fun goToLocation(location: String) {
-        controller?.goToLocation(location)
+    fun goToLocation(location: String): Boolean = controller?.goToLocation(location) == true
+
+    fun cancelNavigationByUser() {
+        controller?.cancelNavigationByUser()
     }
 
     fun notifyUserInteraction() {
@@ -47,9 +51,23 @@ object TemiSessionManager {
         returnListeners -= listener
     }
 
+    fun addNavigationFailureListener(listener: () -> Unit) {
+        navigationFailureListeners += listener
+    }
+
+    fun removeNavigationFailureListener(listener: () -> Unit) {
+        navigationFailureListeners -= listener
+    }
+
     private fun notifyReturnedByInactivity() {
         mainHandler.post {
             returnListeners.forEach { it.invoke() }
+        }
+    }
+
+    private fun notifyNavigationFailed() {
+        mainHandler.post {
+            navigationFailureListeners.forEach { it.invoke() }
         }
     }
 }

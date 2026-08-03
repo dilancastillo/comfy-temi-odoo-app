@@ -18,7 +18,8 @@ class TemiController(
     private val context: Context,
     private val onStatus: (String) -> Unit,
     private val onArrived: (() -> Unit)? = null,
-    private val onReturnedByInactivity: (() -> Unit)? = null
+    private val onReturnedByInactivity: (() -> Unit)? = null,
+    private val onNavigationFailed: (() -> Unit)? = null
 ) : OnRobotReadyListener, OnGoToLocationStatusChangedListener {
 
     private val robot: Robot = Robot.getInstance()
@@ -37,6 +38,9 @@ class TemiController(
     private var navigationStartedByUser = false
     private var arrivedHomeByInactivity = false
     private var isNavigating = false
+    private var returningToCenter = false
+    private var activeTarget: String? = null
+    private var cancelledTarget: String? = null
 
 
 
@@ -66,16 +70,19 @@ class TemiController(
         onStatus(if (isReady) "Robot listo" else "Robot no disponible")
     }
 
-    fun goToLocation(location: String) {
+    fun goToLocation(location: String, automaticReturn: Boolean = false): Boolean {
         if (!robotReady) {
             toast("Robot no listo")
-            return
+            handleNavigationStartFailure(automaticReturn)
+            return false
         }
 
         val target = location.lowercase()
         if (!robot.locations.map { it.lowercase() }.contains(target)) {
             toast("Ubicación no existe: $target")
-            return
+            robot.speak(TtsRequest.create("Hubo un error de ubicación, pero puedes ver el catálogo", false))
+            handleNavigationStartFailure(automaticReturn)
+            return false
         }
         cancelInactivityTimer()
 
@@ -86,20 +93,27 @@ class TemiController(
 
         isAtHomeBase = false
         isNavigating = true
+        returningToCenter = automaticReturn
+        activeTarget = target
         navigationStartedByUser = true
         abortExpectedFromUser = false
 
-        if(target.contains("promosemana1")||target.contains("promosemana")){
-
-            robot.goTo(target,false,false, SpeedLevel.MEDIUM,true, true)
-        }
-        else{
-            robot.goTo(target,true,false, SpeedLevel.MEDIUM,false, false)
-
+        try {
+            if(target.contains("promosemana1")||target.contains("promosemana")) {
+                robot.goTo(target,false,false, SpeedLevel.MEDIUM,true, true)
+            } else {
+                robot.goTo(target,true,false, SpeedLevel.MEDIUM,false, false)
+            }
+        } catch (error: Exception) {
+            Log.e(TAG, "No se pudo iniciar la navegación", error)
+            isNavigating = false
+            activeTarget = null
+            handleNavigationStartFailure(automaticReturn)
+            return false
         }
 
         //robot.goTo(target)
-       //
+        return true
     }
 
     override fun onGoToLocationStatusChanged(
@@ -110,10 +124,18 @@ class TemiController(
     ) {
         Log.d(TAG, "GoTo $location → $status")
 
+        val normalizedLocation = location.lowercase()
+        if (cancelledTarget == normalizedLocation) {
+            if (status == "abort" || status == "complete") cancelledTarget = null
+            return
+        }
+
         if (status == "complete") {
             isNavigating = false
             abortExpectedFromUser = false
             navigationStartedByUser = false
+            returningToCenter = false
+            activeTarget = null
             robot.cancelAllTtsRequests()
 
             LocationEventManager.notifyLocationArrived(location)
@@ -175,7 +197,10 @@ class TemiController(
             }
         }
         if (status == "abort") {
+            val failedWhileReturning = returningToCenter
             isNavigating = false
+            returningToCenter = false
+            activeTarget = null
 
             if (abortExpectedFromUser) {
                 Log.d(TAG, "Abort por interacción humana")
@@ -190,7 +215,15 @@ class TemiController(
                 resetInactivityTimer()
             } else {
                 Log.d(TAG, "Abort técnico (obstáculo / sistema / scheduler)")
-                //goToLocation("home base")
+                val message = if (failedWhileReturning) {
+                    "No pude regresar a centro sala"
+                } else {
+                    "No pude llegar a mi destino"
+                }
+                robot.speak(TtsRequest.create(message, false))
+                onNavigationFailed?.invoke()
+                if (failedWhileReturning) onReturnedByInactivity?.invoke()
+                resetInactivityTimer()
             }
 
             abortExpectedFromUser = false
@@ -237,11 +270,35 @@ class TemiController(
         }
 
         if (isNavigating) {
+            if (returningToCenter) {
+                cancelNavigationByUser()
+                return
+            }
             cancelInactivityTimer()
             return
         }
 
+        arrivedHomeByInactivity = false
         if (!isAtHomeBase) resetInactivityTimer()
+    }
+
+    fun cancelNavigationByUser() {
+        if (!isNavigating) {
+            notifyUserInteraction()
+            return
+        }
+
+        cancelledTarget = activeTarget
+        arrivedHomeByInactivity = false
+        activeTarget = null
+        isNavigating = false
+        returningToCenter = false
+        abortExpectedFromUser = false
+        robot.stopMovement()
+        robot.cancelAllTtsRequests()
+        robot.speak(TtsRequest.create("Dime, ¿en qué te puedo ayudar?", false))
+        onNavigationFailed?.invoke()
+        resetInactivityTimer()
     }
     private fun goToAutoLocation(location: String) {
         navigationStartedByUser = false
@@ -274,10 +331,19 @@ class TemiController(
                 )
             )
 
-            goToLocation("centro sala")
+            goToLocation("centro sala", automaticReturn = true)
         }
 
         inactivityHandler.postDelayed(inactivityRunnable!!, INACTIVITY_TIMEOUT)
+    }
+
+    private fun handleNavigationStartFailure(automaticReturn: Boolean) {
+        isNavigating = false
+        returningToCenter = false
+        activeTarget = null
+        onNavigationFailed?.invoke()
+        if (automaticReturn) onReturnedByInactivity?.invoke()
+        if (!isAtHomeBase) resetInactivityTimer()
     }
 
     private fun cancelInactivityTimer() {

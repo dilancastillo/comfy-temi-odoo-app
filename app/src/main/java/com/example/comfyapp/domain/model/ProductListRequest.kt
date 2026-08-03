@@ -11,7 +11,8 @@ data class ProductListRequest(
     val robotLocation: String,
     val video: ProductVideo,
     val usedInIds: List<Int> = emptyList(),
-    val pageSize: Int = 8
+    val pageSize: Int = 8,
+    val showTravelVideo: Boolean = true
 ) : Serializable
 
 enum class ProductVideo : Serializable {
