@@ -4,11 +4,15 @@ package com.example.comfyapp
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import okhttp3.OkHttpClient
+import android.os.SystemClock
+import android.util.Log
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 object OdooHelper {
     const val BASE_URL = BuildConfig.ODOO_BASE_URL
@@ -17,8 +21,16 @@ object OdooHelper {
     // RETROFIT seguro usando HTTPS
     // ---------------------------------------------------------
     private val odooApi: OdooApi by lazy {
+        val httpClient = OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .callTimeout(30, TimeUnit.SECONDS)
+            .build()
+
         Retrofit.Builder()
             .baseUrl(BuildConfig.ODOO_BASE_URL)
+            .client(httpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(OdooApi::class.java)
@@ -39,6 +51,13 @@ object OdooHelper {
         limit: Int,
         offset: Int = 0
     ) {
+        val requestId = System.currentTimeMillis()
+        val requestStartedAt = SystemClock.elapsedRealtime()
+        Log.i(
+            ODOO_TIMING_TAG,
+            "odoo_request_started id=$requestId model=$model method=$method " +
+                "offset=$offset limit=$limit"
+        )
 
         val params = JsonObject().apply {
             addProperty("service", "object")
@@ -72,11 +91,17 @@ object OdooHelper {
             addProperty("jsonrpc", "2.0")
             addProperty("method", "call")
             add("params", params)
-            addProperty("id", System.currentTimeMillis().toInt())
+            addProperty("id", requestId)
         }
 
         odooApi.call(request).enqueue(object : Callback<JsonObject> {
             override fun onResponse(call: Call<JsonObject>, response: Response<JsonObject>) {
+                Log.i(
+                    ODOO_TIMING_TAG,
+                    "odoo_request_finished id=$requestId model=$model " +
+                        "durationMs=${SystemClock.elapsedRealtime() - requestStartedAt} " +
+                        "httpCode=${response.code()} hasResult=${response.body()?.has("result") == true}"
+                )
 
                 // 👇 LOG COMPLETO
                 android.util.Log.e("ODDO-DEBUG", "Raw response: ${response.body()}")
@@ -98,8 +123,16 @@ object OdooHelper {
             }
 
             override fun onFailure(call: Call<JsonObject>, t: Throwable) {
+                Log.i(
+                    ODOO_TIMING_TAG,
+                    "odoo_request_failed id=$requestId model=$model " +
+                        "durationMs=${SystemClock.elapsedRealtime() - requestStartedAt} " +
+                        "errorType=${t.javaClass.simpleName}"
+                )
                 onError("Error de red: ${t.message}")
             }
         })
     }
+
+    private const val ODOO_TIMING_TAG = "OdooTiming"
 }

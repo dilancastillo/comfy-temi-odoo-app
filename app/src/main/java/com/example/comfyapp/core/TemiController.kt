@@ -300,6 +300,21 @@ class TemiController(
         onNavigationFailed?.invoke()
         resetInactivityTimer()
     }
+
+    fun cancelNavigationForCatalogError() {
+        if (isNavigating) {
+            cancelledTarget = activeTarget
+            activeTarget = null
+            isNavigating = false
+            returningToCenter = false
+            arrivedHomeByInactivity = false
+            robot.stopMovement()
+        }
+        robot.cancelAllTtsRequests()
+        robot.speak(TtsRequest.create("No pude cargar el catálogo. Puedes intentarlo nuevamente.", false))
+        onNavigationFailed?.invoke()
+        if (!isAtHomeBase) resetInactivityTimer()
+    }
     private fun goToAutoLocation(location: String) {
         navigationStartedByUser = false
         abortExpectedFromUser = false

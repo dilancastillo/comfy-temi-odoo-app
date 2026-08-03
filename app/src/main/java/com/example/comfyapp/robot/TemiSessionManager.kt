@@ -35,6 +35,10 @@ object TemiSessionManager {
         controller?.cancelNavigationByUser()
     }
 
+    fun cancelNavigationForCatalogError() {
+        controller?.cancelNavigationForCatalogError()
+    }
+
     fun notifyUserInteraction() {
         controller?.notifyUserInteraction()
     }

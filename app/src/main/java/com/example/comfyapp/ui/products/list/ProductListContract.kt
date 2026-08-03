@@ -12,5 +12,6 @@ data class ProductListUiState(
 )
 
 sealed interface ProductListEffect {
-    data class ShowError(val message: String) : ProductListEffect
+    data object ShowInitialError : ProductListEffect
+    data object ShowPaginationError : ProductListEffect
 }

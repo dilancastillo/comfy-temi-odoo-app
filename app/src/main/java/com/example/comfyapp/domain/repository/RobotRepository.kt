@@ -7,5 +7,6 @@ interface RobotRepository {
     fun speak(message: String)
     fun goToLocation(location: String): Boolean
     fun cancelNavigationByUser()
+    fun cancelNavigationForCatalogError()
     fun notifyUserInteraction()
 }

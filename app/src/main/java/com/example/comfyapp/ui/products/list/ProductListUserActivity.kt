@@ -6,6 +6,10 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -22,6 +26,7 @@ import com.example.comfyapp.ui.SimpleViewModelFactory
 import com.example.comfyapp.robot.TemiRobotRepository
 import com.example.comfyapp.robot.TemiSessionManager
 import com.example.comfyapp.ui.RobotInactivityNavigator
+import com.example.comfyapp.ui.products.category.ProductsUserActivity
 
 class ProductListUserActivity : AppCompatActivity() {
 
@@ -32,9 +37,18 @@ class ProductListUserActivity : AppCompatActivity() {
     private val robotRepository by lazy { TemiRobotRepository(applicationContext) }
     private val inactivityNavigator by lazy { RobotInactivityNavigator(this) }
     private val navigationFailureListener: () -> Unit = { closeVideoOverlay() }
+    private var screenEnteredAtMs = 0L
+    private val catalogErrorHandler = Handler(Looper.getMainLooper())
+    private val catalogErrorTimeout = Runnable {
+        binding.catalogErrorContainer.visibility = View.GONE
+        robotRepository.speak("Dime, ¿en qué te puedo ayudar?")
+        openCategories("catalog_error_timeout")
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        screenEnteredAtMs = SystemClock.elapsedRealtime()
+        Log.i(TAG, "screen_enter elapsedRealtimeMs=$screenEnteredAtMs")
         binding = ActivityProductListUserBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -58,6 +72,7 @@ class ProductListUserActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        cancelCatalogErrorTimeout()
         if (isFinishing) LocationEventManager.clear()
         super.onDestroy()
     }
@@ -70,6 +85,12 @@ class ProductListUserActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        Log.i(
+            TAG,
+            "screen_stop durationMs=${SystemClock.elapsedRealtime() - screenEnteredAtMs} " +
+                "isFinishing=$isFinishing"
+        )
+        cancelCatalogErrorTimeout()
         inactivityNavigator.stop()
         TemiSessionManager.removeNavigationFailureListener(navigationFailureListener)
         robotRepository.stop()
@@ -78,6 +99,10 @@ class ProductListUserActivity : AppCompatActivity() {
 
     override fun onUserInteraction() {
         super.onUserInteraction()
+        if (binding.catalogErrorContainer.visibility == View.VISIBLE) {
+            Log.i(TAG, "generic_interaction_ignored_while_error_panel_is_visible")
+            return
+        }
         robotRepository.notifyUserInteraction()
     }
 
@@ -93,6 +118,15 @@ class ProductListUserActivity : AppCompatActivity() {
         binding.btnCloseVideo.setOnClickListener {
             closeVideoOverlay()
             robotRepository.cancelNavigationByUser()
+        }
+        binding.btnRetryCatalog.setOnClickListener {
+            cancelCatalogErrorTimeout()
+            binding.catalogErrorContainer.visibility = View.GONE
+            viewModel.retry()
+        }
+        binding.btnBackToCategories.setOnClickListener {
+            cancelCatalogErrorTimeout()
+            openCategories("back_to_categories_button")
         }
     }
 
@@ -112,16 +146,31 @@ class ProductListUserActivity : AppCompatActivity() {
             binding.loading.visibility = if (showInitialLoading) View.VISIBLE else View.GONE
             binding.Secondloading.visibility = if (showInitialLoading) View.VISIBLE else View.GONE
             if (state.isLoaded) {
+                cancelCatalogErrorTimeout()
+                binding.catalogErrorContainer.visibility = View.GONE
                 firstColumnFragment.setProducts(state.firstColumn.toProducts())
                 secondColumnFragment.setProducts(state.secondColumn.toProducts())
             }
         }
         viewModel.effect.observe(this) { effect ->
             when (effect) {
-                is ProductListEffect.ShowError -> {
-                    Toast.makeText(this, "Error: ${effect.message}", Toast.LENGTH_LONG).show()
-                    if (viewModel.state.value?.isLoaded != true) finish()
+                ProductListEffect.ShowInitialError -> {
+                    Log.i(
+                        TAG,
+                        "catalog_error_panel_shown " +
+                            "durationMs=${SystemClock.elapsedRealtime() - screenEnteredAtMs}"
+                    )
+                    closeVideoOverlay()
+                    robotRepository.cancelNavigationForCatalogError()
+                    binding.catalogErrorContainer.visibility = View.VISIBLE
+                    scheduleCatalogErrorTimeout("initial_error")
                 }
+                ProductListEffect.ShowPaginationError ->
+                    Toast.makeText(
+                        this,
+                        "No pudimos cargar más productos. Inténtalo nuevamente.",
+                        Toast.LENGTH_LONG
+                    ).show()
                 null -> return@observe
             }
             viewModel.effectHandled()
@@ -158,6 +207,33 @@ class ProductListUserActivity : AppCompatActivity() {
         videoOverlayContainer.visibility = View.GONE
     }
 
+    private fun scheduleCatalogErrorTimeout(reason: String) {
+        cancelCatalogErrorTimeout()
+        Log.i(
+            TAG,
+            "catalog_error_timer_scheduled reason=$reason timeoutMs=$CATALOG_ERROR_TIMEOUT_MS " +
+                "durationMs=${SystemClock.elapsedRealtime() - screenEnteredAtMs}"
+        )
+        catalogErrorHandler.postDelayed(catalogErrorTimeout, CATALOG_ERROR_TIMEOUT_MS)
+    }
+
+    private fun cancelCatalogErrorTimeout() {
+        catalogErrorHandler.removeCallbacks(catalogErrorTimeout)
+    }
+
+    private fun openCategories(reason: String) {
+        Log.i(
+            TAG,
+            "return_to_categories reason=$reason " +
+                "durationMs=${SystemClock.elapsedRealtime() - screenEnteredAtMs}"
+        )
+        startActivity(
+            Intent(this, ProductsUserActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+        )
+    }
+
     @Suppress("DEPRECATION")
     private fun readRequest(): ProductListRequest? = if (Build.VERSION.SDK_INT >= 33) {
         intent.getSerializableExtra(EXTRA_REQUEST, ProductListRequest::class.java)
@@ -172,7 +248,9 @@ class ProductListUserActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val TAG = "ProductListTiming"
         private const val EXTRA_REQUEST = "product_list_request"
+        private const val CATALOG_ERROR_TIMEOUT_MS = 60_000L
 
         fun createIntent(context: Context, request: ProductListRequest) =
             Intent(context, ProductListUserActivity::class.java).apply {

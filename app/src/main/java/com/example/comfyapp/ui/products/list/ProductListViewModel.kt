@@ -34,6 +34,18 @@ class ProductListViewModel(
         loadPage(request, reset = false)
     }
 
+    fun retry() {
+        val request = currentRequest ?: return
+        val state = _state.value ?: return
+        if (state.isLoading) return
+        if (state.isLoaded) {
+            loadPage(request, reset = false)
+        } else {
+            nextOffset = 0
+            loadPage(request, reset = true)
+        }
+    }
+
     private fun loadPage(request: ProductListRequest, reset: Boolean) {
         val previous = if (reset) ProductListUiState() else requireNotNull(_state.value)
         _state.value = previous.copy(isLoading = true)
@@ -54,7 +66,11 @@ class ProductListViewModel(
             },
             onError = { message ->
                 _state.value = previous.copy(isLoading = false)
-                _effect.value = ProductListEffect.ShowError(message)
+                _effect.value = if (previous.isLoaded) {
+                    ProductListEffect.ShowPaginationError
+                } else {
+                    ProductListEffect.ShowInitialError
+                }
             }
         )
     }

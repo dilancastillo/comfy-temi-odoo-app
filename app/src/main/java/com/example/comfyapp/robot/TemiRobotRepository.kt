@@ -23,5 +23,7 @@ class TemiRobotRepository(
 
     override fun cancelNavigationByUser() = TemiSessionManager.cancelNavigationByUser()
 
+    override fun cancelNavigationForCatalogError() = TemiSessionManager.cancelNavigationForCatalogError()
+
     override fun notifyUserInteraction() = TemiSessionManager.notifyUserInteraction()
 }
