@@ -11,11 +11,13 @@ import com.example.comfyapp.databinding.ActivityProductsUserBinding
 import com.example.comfyapp.domain.model.ProductListRequest
 import com.example.comfyapp.robot.TemiRobotRepository
 import com.example.comfyapp.ui.SimpleViewModelFactory
+import com.example.comfyapp.ui.RobotInactivityNavigator
 
 class ProductsUserActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProductsUserBinding
     private lateinit var viewModel: ProductsUserViewModel
+    private val inactivityNavigator by lazy { RobotInactivityNavigator(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,10 +39,12 @@ class ProductsUserActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        inactivityNavigator.start()
         viewModel.startRobot()
     }
 
     override fun onStop() {
+        inactivityNavigator.stop()
         viewModel.stopRobot()
         super.onStop()
     }

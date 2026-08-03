@@ -19,6 +19,8 @@ import com.example.comfyapp.domain.model.Product
 import com.example.comfyapp.domain.model.ProductListRequest
 import com.example.comfyapp.domain.model.ProductVideo
 import com.example.comfyapp.ui.SimpleViewModelFactory
+import com.example.comfyapp.robot.TemiRobotRepository
+import com.example.comfyapp.ui.RobotInactivityNavigator
 
 class ProductListUserActivity : AppCompatActivity() {
 
@@ -26,6 +28,8 @@ class ProductListUserActivity : AppCompatActivity() {
     private lateinit var viewModel: ProductListViewModel
     private val firstColumnFragment = ProductListFragment.newInstance()
     private val secondColumnFragment = ProductListFragment.newInstance()
+    private val robotRepository by lazy { TemiRobotRepository(applicationContext) }
+    private val inactivityNavigator by lazy { RobotInactivityNavigator(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +58,23 @@ class ProductListUserActivity : AppCompatActivity() {
     override fun onDestroy() {
         if (isFinishing) LocationEventManager.clear()
         super.onDestroy()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        inactivityNavigator.start()
+        robotRepository.start()
+    }
+
+    override fun onStop() {
+        inactivityNavigator.stop()
+        robotRepository.stop()
+        super.onStop()
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        robotRepository.notifyUserInteraction()
     }
 
     private fun renderConfiguration(request: ProductListRequest) = with(binding) {

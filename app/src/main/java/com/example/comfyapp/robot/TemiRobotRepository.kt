@@ -2,29 +2,24 @@
 package com.example.comfyapp.robot
 
 import android.content.Context
-import com.example.comfyapp.core.TemiController
 import com.example.comfyapp.domain.repository.RobotRepository
-import com.robotemi.sdk.Robot
-import com.robotemi.sdk.TtsRequest
 
 class TemiRobotRepository(
     context: Context,
-    onStatus: (String) -> Unit = {},
-    onArrived: (() -> Unit)? = null
+    private val onStatus: (String) -> Unit = {}
 ) : RobotRepository {
 
-    private val robot = Robot.getInstance()
-    private val controller = TemiController(context.applicationContext, onStatus, onArrived)
+    private val appContext = context.applicationContext
 
-    override fun start() = controller.start()
+    override fun start() = TemiSessionManager.start(appContext, onStatus)
 
-    override fun stop() = controller.stop()
+    override fun stop() = Unit
 
     override fun speak(message: String) {
-        robot.speak(TtsRequest.create(message, false))
+        TemiSessionManager.speak(message)
     }
 
-    override fun goToLocation(location: String) = controller.goToLocation(location)
+    override fun goToLocation(location: String) = TemiSessionManager.goToLocation(location)
 
-    override fun notifyUserInteraction() = controller.notifyUserInteraction()
+    override fun notifyUserInteraction() = TemiSessionManager.notifyUserInteraction()
 }

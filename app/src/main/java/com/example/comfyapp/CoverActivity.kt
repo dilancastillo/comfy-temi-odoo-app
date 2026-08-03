@@ -8,7 +8,8 @@ import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.comfyapp.core.MqttController
-import com.example.comfyapp.core.TemiController
+import com.example.comfyapp.robot.TemiRobotRepository
+import com.example.comfyapp.ui.RobotInactivityNavigator
 import com.example.comfyapp.ui.products.category.ProductsUserActivity
 import com.example.comfyapp.databinding.ActivityCoverBinding
 import com.robotemi.sdk.Robot
@@ -18,7 +19,8 @@ import com.robotemi.sdk.permission.Permission
 class CoverActivity : AppCompatActivity() {
     private lateinit var binding: ActivityCoverBinding
     private lateinit var mqttController: MqttController
-    private lateinit var temiController: TemiController
+    private lateinit var robotRepository: TemiRobotRepository
+    private val inactivityNavigator by lazy { RobotInactivityNavigator(this) }
     private val robot: Robot = Robot.getInstance()
 
     companion object {
@@ -50,7 +52,7 @@ class CoverActivity : AppCompatActivity() {
         }, 500)
 
         // Iniciar Temi
-        temiController.start()
+        robotRepository.start()
 
         binding.btnclient.setOnClickListener {
             startActivity(Intent(this, ProductsUserActivity::class.java))
@@ -102,7 +104,7 @@ class CoverActivity : AppCompatActivity() {
         )
 
         // Configurar Temi Controller
-        temiController = TemiController(
+        robotRepository = TemiRobotRepository(
             context = this,
             onStatus = { estado ->
                 Log.i(TAG, "Estado Temi: $estado")
@@ -127,18 +129,18 @@ class CoverActivity : AppCompatActivity() {
 
         if (ubicacion.equals("promorevestimientos")){
             robot.speak(TtsRequest.create("¡Ven sígueme y te mostraré las promociones de revestimientos!", true))
-            temiController.goToLocation(ubicacion)
+            robotRepository.goToLocation(ubicacion)
         }
         if (ubicacion.equals("promococina")){
             robot.speak(TtsRequest.create("¡Ven sígueme y te mostraré las promociones de cocinas!", true))
-            temiController.goToLocation(ubicacion)
+            robotRepository.goToLocation(ubicacion)
         }
         if (ubicacion.equals("promolavamanos")){
             robot.speak(TtsRequest.create("¡Ven sígueme y te mostraré las promociones de lavamanos!", true))
-            temiController.goToLocation(ubicacion)
+            robotRepository.goToLocation(ubicacion)
         }
         else{
-            temiController.goToLocation(ubicacion)
+            robotRepository.goToLocation(ubicacion)
         }
 
     }
@@ -148,7 +150,7 @@ class CoverActivity : AppCompatActivity() {
         // Limpiar recursos
         try {
             mqttController.disconnect()
-            temiController.stop()
+            robotRepository.stop()
             Log.i(TAG, "Controladores desconectados")
         } catch (e: Exception) {
             Log.e(TAG, "Error al desconectar", e)
@@ -167,6 +169,7 @@ class CoverActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        inactivityNavigator.start()
         // Asegurar que Temi no esté en Lock Task Mode
         try {
             if (isTaskRoot) {
@@ -175,5 +178,15 @@ class CoverActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.d(TAG, "No estaba en Lock Task Mode")
         }
+    }
+
+    override fun onStop() {
+        inactivityNavigator.stop()
+        super.onStop()
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        robotRepository.notifyUserInteraction()
     }
 }

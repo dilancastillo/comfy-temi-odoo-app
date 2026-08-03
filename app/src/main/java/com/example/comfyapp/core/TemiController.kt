@@ -17,12 +17,14 @@ import com.robotemi.sdk.navigation.model.SpeedLevel
 class TemiController(
     private val context: Context,
     private val onStatus: (String) -> Unit,
-    private val onArrived: (() -> Unit)? = null
+    private val onArrived: (() -> Unit)? = null,
+    private val onReturnedByInactivity: (() -> Unit)? = null
 ) : OnRobotReadyListener, OnGoToLocationStatusChangedListener {
 
     private val robot: Robot = Robot.getInstance()
     private val handler = Handler(Looper.getMainLooper())
     private var robotReady = false
+    private var started = false
     var last_location: String? = null
         private set
     var executeSequences = true
@@ -34,6 +36,7 @@ class TemiController(
     private var abortExpectedFromUser = false
     private var navigationStartedByUser = false
     private var arrivedHomeByInactivity = false
+    private var isNavigating = false
 
 
 
@@ -43,14 +46,19 @@ class TemiController(
     }
 
     fun start() {
+        if (started) return
+        started = true
         robot.addOnRobotReadyListener(this)
         robot.addOnGoToLocationStatusChangedListener(this)
         onStatus("Inicializando Temi…")
     }
 
     fun stop() {
+        if (!started) return
+        started = false
         robot.removeOnRobotReadyListener(this)
         robot.removeOnGoToLocationStatusChangedListener(this)
+        cancelInactivityTimer()
     }
 
     override fun onRobotReady(isReady: Boolean) {
@@ -77,6 +85,7 @@ class TemiController(
         }
 
         isAtHomeBase = false
+        isNavigating = true
         navigationStartedByUser = true
         abortExpectedFromUser = false
 
@@ -102,6 +111,9 @@ class TemiController(
         Log.d(TAG, "GoTo $location → $status")
 
         if (status == "complete") {
+            isNavigating = false
+            abortExpectedFromUser = false
+            navigationStartedByUser = false
             robot.cancelAllTtsRequests()
 
             LocationEventManager.notifyLocationArrived(location)
@@ -131,6 +143,7 @@ class TemiController(
                 if (arrivedHomeByInactivity) {
                     Log.d(TAG, "cemntro sala por inactividad → NO reactivar contador")
                     arrivedHomeByInactivity = false
+                    onReturnedByInactivity?.invoke()
                     return
                 }
 
@@ -162,6 +175,7 @@ class TemiController(
             }
         }
         if (status == "abort") {
+            isNavigating = false
 
             if (abortExpectedFromUser) {
                 Log.d(TAG, "Abort por interacción humana")
@@ -222,11 +236,12 @@ class TemiController(
             hourlyRunnable = null
         }
 
-        if (isAtHomeBase) {
-            isAtHomeBase = false
+        if (isNavigating) {
+            cancelInactivityTimer()
+            return
         }
 
-        resetInactivityTimer()
+        if (!isAtHomeBase) resetInactivityTimer()
     }
     private fun goToAutoLocation(location: String) {
         navigationStartedByUser = false
@@ -245,7 +260,7 @@ class TemiController(
 
         inactivityRunnable = Runnable {
 
-            if (isAtHomeBase) return@Runnable
+            if (isAtHomeBase || isNavigating) return@Runnable
 
             Log.d(TAG, "Inactividad detectada → volver a centro sala")
 

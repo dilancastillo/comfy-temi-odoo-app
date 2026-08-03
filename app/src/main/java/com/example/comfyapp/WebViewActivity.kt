@@ -5,12 +5,16 @@ import android.os.Bundle
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 import com.example.comfyapp.databinding.ActivityWebviewBinding
+import com.example.comfyapp.robot.TemiRobotRepository
+import com.example.comfyapp.ui.RobotInactivityNavigator
 import com.robotemi.sdk.Robot
 import com.robotemi.sdk.TtsRequest
 
 class WebViewActivity : AppCompatActivity() {
     private lateinit var robot: Robot
     private var promoId: Int = -1
+    private val robotRepository by lazy { TemiRobotRepository(applicationContext) }
+    private val inactivityNavigator by lazy { RobotInactivityNavigator(this) }
 
     companion object {
         const val EXTRA_URL = "extra_url"
@@ -55,6 +59,23 @@ class WebViewActivity : AppCompatActivity() {
         }
 
         robot.speak(TtsRequest.create(message, false))
+    }
+
+    override fun onStart() {
+        super.onStart()
+        inactivityNavigator.start()
+        robotRepository.start()
+    }
+
+    override fun onStop() {
+        inactivityNavigator.stop()
+        robotRepository.stop()
+        super.onStop()
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        robotRepository.notifyUserInteraction()
     }
 
     override fun onBackPressed() {
