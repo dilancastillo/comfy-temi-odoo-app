@@ -24,6 +24,8 @@ class ProductListUserActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProductListUserBinding
     private lateinit var viewModel: ProductListViewModel
+    private val firstColumnFragment = ProductListFragment.newInstance()
+    private val secondColumnFragment = ProductListFragment.newInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +44,7 @@ class ProductListUserActivity : AppCompatActivity() {
         )[ProductListViewModel::class.java]
 
         renderConfiguration(request)
+        setupProductColumns()
         bindActions()
         observeViewModel()
         observeRobotArrival()
@@ -65,20 +68,31 @@ class ProductListUserActivity : AppCompatActivity() {
         binding.btnCloseVideo.setOnClickListener { closeVideoOverlay() }
     }
 
+    private fun setupProductColumns() {
+        firstColumnFragment.setOnLoadMore(viewModel::loadNextPage)
+        secondColumnFragment.setOnLoadMore(viewModel::loadNextPage)
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainerOne, firstColumnFragment)
+            .replace(R.id.fragmentContainerTwo, secondColumnFragment)
+            .commit()
+    }
+
     private fun observeViewModel() {
         viewModel.state.observe(this) { state ->
-            binding.loading.visibility = if (state.isLoading) View.VISIBLE else View.GONE
-            binding.Secondloading.visibility = if (state.isLoading) View.VISIBLE else View.GONE
+            val showInitialLoading = state.isLoading &&
+                state.firstColumn.isEmpty() && state.secondColumn.isEmpty()
+            binding.loading.visibility = if (showInitialLoading) View.VISIBLE else View.GONE
+            binding.Secondloading.visibility = if (showInitialLoading) View.VISIBLE else View.GONE
             if (state.isLoaded) {
-                showProducts(state.firstColumn, R.id.fragmentContainerOne)
-                showProducts(state.secondColumn, R.id.fragmentContainerTwo)
+                firstColumnFragment.setProducts(state.firstColumn.toProducts())
+                secondColumnFragment.setProducts(state.secondColumn.toProducts())
             }
         }
         viewModel.effect.observe(this) { effect ->
             when (effect) {
                 is ProductListEffect.ShowError -> {
                     Toast.makeText(this, "Error: ${effect.message}", Toast.LENGTH_LONG).show()
-                    finish()
+                    if (viewModel.state.value?.isLoaded != true) finish()
                 }
                 null -> return@observe
             }
@@ -92,22 +106,17 @@ class ProductListUserActivity : AppCompatActivity() {
         }
     }
 
-    private fun showProducts(products: List<CatalogProduct>, containerId: Int) {
-        val items = products.map {
-            Product(
-                id = it.id,
-                name = it.name,
-                price = it.price,
-                stock = it.stock,
-                imageUrl = it.imageUrl,
-                description = it.description,
-                website_url = it.websiteUrl
-            )
+    private fun List<CatalogProduct>.toProducts() = map {
+        Product(
+            id = it.id,
+            name = it.name,
+            price = it.price,
+            stock = it.stock,
+            imageUrl = it.imageUrl,
+            description = it.description,
+            website_url = it.websiteUrl
+        )
         }
-        supportFragmentManager.beginTransaction()
-            .replace(containerId, ProductListFragment.newInstance().apply { setProducts(items) })
-            .commit()
-    }
 
     private fun showVideoOverlay(videoResId: Int) = with(binding) {
         videoOverlayContainer.visibility = View.VISIBLE

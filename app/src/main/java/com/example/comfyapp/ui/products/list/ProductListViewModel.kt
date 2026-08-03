@@ -11,6 +11,9 @@ class ProductListViewModel(
     private val repository: ProductCatalogRepository
 ) : ViewModel() {
 
+    private var currentRequest: ProductListRequest? = null
+    private var nextOffset = 0
+
     private val _state = MutableLiveData(ProductListUiState())
     val state: LiveData<ProductListUiState> = _state
 
@@ -19,18 +22,38 @@ class ProductListViewModel(
 
     fun load(request: ProductListRequest) {
         if (_state.value?.isLoaded == true || _state.value?.isLoading == true) return
-        _state.value = ProductListUiState(isLoading = true)
+        currentRequest = request
+        nextOffset = 0
+        loadPage(request, reset = true)
+    }
+
+    fun loadNextPage() {
+        val request = currentRequest ?: return
+        val state = _state.value ?: return
+        if (state.isLoading || !state.hasMore) return
+        loadPage(request, reset = false)
+    }
+
+    private fun loadPage(request: ProductListRequest, reset: Boolean) {
+        val previous = if (reset) ProductListUiState() else requireNotNull(_state.value)
+        _state.value = previous.copy(isLoading = true)
         repository.load(
             request = request,
+            offset = nextOffset,
             onSuccess = { first, second ->
+                val firstColumn = (previous.firstColumn + first).distinctBy { it.id }
+                val secondColumn = (previous.secondColumn + second).distinctBy { it.id }
+                nextOffset += request.pageSize
                 _state.value = ProductListUiState(
+                    isLoading = false,
                     isLoaded = true,
-                    firstColumn = first,
-                    secondColumn = second
+                    firstColumn = firstColumn,
+                    secondColumn = secondColumn,
+                    hasMore = first.size == request.pageSize || second.size == request.pageSize
                 )
             },
             onError = { message ->
-                _state.value = ProductListUiState()
+                _state.value = previous.copy(isLoading = false)
                 _effect.value = ProductListEffect.ShowError(message)
             }
         )

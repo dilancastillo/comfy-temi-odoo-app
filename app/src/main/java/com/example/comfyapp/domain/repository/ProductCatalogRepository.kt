@@ -7,6 +7,7 @@ import com.example.comfyapp.domain.model.ProductListRequest
 interface ProductCatalogRepository {
     fun load(
         request: ProductListRequest,
+        offset: Int,
         onSuccess: (firstColumn: List<CatalogProduct>, secondColumn: List<CatalogProduct>) -> Unit,
         onError: (String) -> Unit
     )

@@ -11,6 +11,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
 
     override fun load(
         request: ProductListRequest,
+        offset: Int,
         onSuccess: (List<CatalogProduct>, List<CatalogProduct>) -> Unit,
         onError: (String) -> Unit
     ) {
@@ -48,37 +49,49 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     locationName = DEFAULT_LOCATION,
                     usedInId = request.usedInIds,
                     onSuccess = firstSuccess,
-                    onError = ::handleError
+                    onError = ::handleError,
+                    offset = offset,
+                    limit = request.pageSize
                 )
                 ProductRepository.getProductsAllFloor(
                     locationName = DEFAULT_LOCATION,
                     usedInId = request.usedInIds,
                     onSuccess = secondSuccess,
-                    onError = ::handleError
+                    onError = ::handleError,
+                    offset = offset,
+                    limit = request.pageSize
                 )
             }
             ProductCategory.TAPS -> {
                 ProductRepository.getProductsTapsLavaM(
                     locationName = DEFAULT_LOCATION,
                     onSuccess = firstSuccess,
-                    onError = ::handleError
+                    onError = ::handleError,
+                    offset = offset,
+                    limit = request.pageSize
                 )
                 ProductRepository.getProductsTapsLavaP(
                     locationName = DEFAULT_LOCATION,
                     onSuccess = secondSuccess,
-                    onError = ::handleError
+                    onError = ::handleError,
+                    offset = offset,
+                    limit = request.pageSize
                 )
             }
             ProductCategory.SANITARY -> {
                 ProductRepository.getProductsSanitaryCombo(
                     locationName = DEFAULT_LOCATION,
                     onSuccess = firstSuccess,
-                    onError = ::handleError
+                    onError = ::handleError,
+                    offset = offset,
+                    limit = request.pageSize
                 )
                 ProductRepository.getProductsSanitaryOnly(
                     locationName = DEFAULT_LOCATION,
                     onSuccess = secondSuccess,
-                    onError = ::handleError
+                    onError = ::handleError,
+                    offset = offset,
+                    limit = request.pageSize
                 )
             }
         }

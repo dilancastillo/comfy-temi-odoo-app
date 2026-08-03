@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.comfyapp.WebViewActivity
 import com.example.comfyapp.databinding.FragmentProductListBinding
 import com.example.comfyapp.domain.model.Product
@@ -21,6 +22,8 @@ class ProductListFragment : Fragment() {
     private val binding get() = _binding!!
 
     private var products: List<Product> = emptyList()
+    private var onLoadMore: (() -> Unit)? = null
+    private var adapter: ProductAdapter? = null
 
     companion object {
         fun newInstance(): ProductListFragment {
@@ -30,6 +33,11 @@ class ProductListFragment : Fragment() {
 
     fun setProducts(list: List<Product>) {
         products = list
+        adapter?.submitProducts(list)
+    }
+
+    fun setOnLoadMore(listener: () -> Unit) {
+        onLoadMore = listener
     }
 
     override fun onCreateView(
@@ -46,7 +54,7 @@ class ProductListFragment : Fragment() {
 
         binding.recyclerView.layoutManager = GridLayoutManager(context, 2)
 
-        val adapter = ProductAdapter(products) { product ->
+        adapter = ProductAdapter(products) { product ->
 
             val url = product.website_url
             if (!url.isNullOrBlank()) {
@@ -72,9 +80,17 @@ class ProductListFragment : Fragment() {
         }
 
         binding.recyclerView.adapter = adapter
+        binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                if (dy > 0 && !recyclerView.canScrollVertically(1)) {
+                    onLoadMore?.invoke()
+                }
+            }
+        })
     }
 
     override fun onDestroyView() {
+        adapter = null
         super.onDestroyView()
         _binding = null
     }

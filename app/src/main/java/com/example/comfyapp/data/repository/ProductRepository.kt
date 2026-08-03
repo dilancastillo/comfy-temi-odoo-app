@@ -37,13 +37,13 @@ object ProductRepository {
             listOf("used_in_ids", "=", usedInId)
         )
 
-        val fieldsStock = mapOf(
-            "id" to true,
-            "name" to true,
-            "list_price" to true,
-            "free_qty" to true,
-            "description" to true,
-            "product_tmpl_id" to true   // Para luego buscar la URL
+        val fieldsStock = listOf(
+            "id",
+            "name",
+            "list_price",
+            "free_qty",
+            "description",
+            "product_tmpl_id" // Para luego buscar la URL
         )
 
         OdooHelper.executeOdooRpc(
@@ -70,9 +70,9 @@ object ProductRepository {
                 )
 
 
-                val fieldsTemplate = mapOf(
-                    "id" to true,
-                    "website_url" to true
+                val fieldsTemplate = listOf(
+                    "id",
+                    "website_url"
                 )
 
                 OdooHelper.executeOdooRpc(
@@ -142,12 +142,12 @@ object ProductRepository {
             listOf("free_qty", ">", 0)
         )
 
-        val fields = mapOf(
-            "id" to true,
-            "name" to true,
-            "free_qty" to true,
-            "website_url" to true,
-            "list_price" to true
+        val fields = listOf(
+            "id",
+            "name",
+            "free_qty",
+            "website_url",
+            "list_price"
         )
 
         OdooHelper.executeOdooRpc(
@@ -185,10 +185,12 @@ object ProductRepository {
         locationName: String = "Tunja/E",
         usedInId: List<Int>,
         onSuccess: (List<ModelProductStock>) -> Unit,
-        onError: (String) -> Unit
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 8
     ) {
         // key única para pisos y paredes
-        val cacheKey = "floor_wall_${locationName}_${usedInId.sorted()}"
+        val cacheKey = "floor_wall_${locationName}_${usedInId.sorted()}_${offset}_$limit"
         val now = System.currentTimeMillis()
 
         // Revisar cache
@@ -209,12 +211,12 @@ object ProductRepository {
         )
 
 
-        val fields = mapOf(
-            "id" to true,
-            "name" to true,
-            "free_qty" to true,
-            "website_url" to true,
-            "list_price" to true
+        val fields = listOf(
+            "id",
+            "name",
+            "free_qty",
+            "website_url",
+            "list_price"
         )
 
         OdooHelper.executeOdooRpc(
@@ -222,7 +224,8 @@ object ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 8,
+            limit = limit,
+            offset = offset,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
@@ -260,10 +263,12 @@ object ProductRepository {
         locationName: String = "Tunja/E",
         usedInId: List<Int>,
         onSuccess: (List<ModelProductStock>) -> Unit,
-        onError: (String) -> Unit
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 8
     ) {
         // key única para pisos y paredes
-        val cacheKey = "wall_${locationName}_${usedInId.sorted()}"
+        val cacheKey = "wall_${locationName}_${usedInId.sorted()}_${offset}_$limit"
         val now = System.currentTimeMillis()
 
         // Revisar cache
@@ -284,12 +289,12 @@ object ProductRepository {
         )
 
 
-        val fields = mapOf(
-            "id" to true,
-            "name" to true,
-            "free_qty" to true,
-            "website_url" to true,
-            "list_price" to true
+        val fields = listOf(
+            "id",
+            "name",
+            "free_qty",
+            "website_url",
+            "list_price"
         )
 
         OdooHelper.executeOdooRpc(
@@ -297,7 +302,8 @@ object ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 8,
+            limit = limit,
+            offset = offset,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
@@ -334,10 +340,12 @@ object ProductRepository {
     fun getProductsTapsLavaM(
         locationName: String = "Tunja/E",
         onSuccess: (List<ModelProductStock>) -> Unit,
-        onError: (String) -> Unit
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 8
     ) {
         // key única para pisos y paredes
-        val cacheKey = "lava_${locationName}"
+        val cacheKey = "lava_${locationName}_${offset}_$limit"
         val now = System.currentTimeMillis()
 
         // Revisar cache
@@ -357,12 +365,12 @@ object ProductRepository {
         )
 
 
-        val fields = mapOf(
-            "id" to true,
-            "name" to true,
-            "free_qty" to true,
-            "website_url" to true,
-            "list_price" to true
+        val fields = listOf(
+            "id",
+            "name",
+            "free_qty",
+            "website_url",
+            "list_price"
         )
 
         OdooHelper.executeOdooRpc(
@@ -370,7 +378,8 @@ object ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 8,
+            limit = limit,
+            offset = offset,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
@@ -407,10 +416,12 @@ object ProductRepository {
     fun getProductsTapsLavaP(
         locationName: String = "Tunja/E",
         onSuccess: (List<ModelProductStock>) -> Unit,
-        onError: (String) -> Unit
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 8
     ) {
         // key única para pisos y paredes
-        val cacheKey = "lavaP_${locationName}"
+        val cacheKey = "lavaP_${locationName}_${offset}_$limit"
         val now = System.currentTimeMillis()
 
         // Revisar cache
@@ -431,12 +442,12 @@ object ProductRepository {
         )
 
 
-        val fields = mapOf(
-            "id" to true,
-            "name" to true,
-            "free_qty" to true,
-            "website_url" to true,
-            "list_price" to true
+        val fields = listOf(
+            "id",
+            "name",
+            "free_qty",
+            "website_url",
+            "list_price"
         )
 
         OdooHelper.executeOdooRpc(
@@ -444,7 +455,8 @@ object ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 8,
+            limit = limit,
+            offset = offset,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
@@ -481,10 +493,12 @@ object ProductRepository {
     fun getProductsSanitaryCombo(
         locationName: String = "Tunja/E",
         onSuccess: (List<ModelProductStock>) -> Unit,
-        onError: (String) -> Unit
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 15
     ) {
         // key única para pisos y paredes
-        val cacheKey = "combo_${locationName}"
+        val cacheKey = "combo_${locationName}_${offset}_$limit"
         val now = System.currentTimeMillis()
 
         // Revisar cache
@@ -505,12 +519,12 @@ object ProductRepository {
         )
 
 
-        val fields = mapOf(
-            "id" to true,
-            "name" to true,
-            "free_qty" to true,
-            "website_url" to true,
-            "list_price" to true
+        val fields = listOf(
+            "id",
+            "name",
+            "free_qty",
+            "website_url",
+            "list_price"
         )
 
         OdooHelper.executeOdooRpc(
@@ -518,7 +532,8 @@ object ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 15,
+            limit = limit,
+            offset = offset,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {
@@ -555,10 +570,12 @@ object ProductRepository {
     fun getProductsSanitaryOnly(
         locationName: String = "Tunja/E",
         onSuccess: (List<ModelProductStock>) -> Unit,
-        onError: (String) -> Unit
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 15
     ) {
         // key única para pisos y paredes
-        val cacheKey = "SaniOnly_${locationName}"
+        val cacheKey = "SaniOnly_${locationName}_${offset}_$limit"
         val now = System.currentTimeMillis()
 
         // Revisar cache
@@ -579,12 +596,12 @@ object ProductRepository {
         )
 
 
-        val fields = mapOf(
-            "id" to true,
-            "name" to true,
-            "free_qty" to true,
-            "website_url" to true,
-            "list_price" to true
+        val fields = listOf(
+            "id",
+            "name",
+            "free_qty",
+            "website_url",
+            "list_price"
         )
 
         OdooHelper.executeOdooRpc(
@@ -592,7 +609,8 @@ object ProductRepository {
             method = "search_read",
             domain = domain,
             fields = fields,
-            limit = 15,
+            limit = limit,
+            offset = offset,
             order = "free_qty desc",
             onSuccess = { result ->
                 val products = result.mapNotNull {

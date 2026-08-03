@@ -10,7 +10,8 @@ data class ProductListRequest(
     val secondColumnTitle: String,
     val robotLocation: String,
     val video: ProductVideo,
-    val usedInIds: List<Int> = emptyList()
+    val usedInIds: List<Int> = emptyList(),
+    val pageSize: Int = 8
 ) : Serializable
 
 enum class ProductVideo : Serializable {

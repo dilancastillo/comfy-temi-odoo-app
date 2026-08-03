@@ -32,11 +32,12 @@ object OdooHelper {
         method: String,
         //antes= domain: List<List<Any>>,
         domain: List<Any>,
-        fields: Map<String, Boolean>? = null,
+        fields: List<String>? = null,
         onSuccess: (JsonArray) -> Unit,
         onError: (String) -> Unit = {},
         order: String,
-        limit: Int
+        limit: Int,
+        offset: Int = 0
     ) {
 
         val params = JsonObject().apply {
@@ -57,6 +58,7 @@ object OdooHelper {
                 val kwargs = JsonObject().apply {
                     if (fields != null) add("fields", Gson().toJsonTree(fields))
                     addProperty("limit", limit)
+                    addProperty("offset", offset)
                     addProperty("order", order)
                 }
                 add(kwargs)

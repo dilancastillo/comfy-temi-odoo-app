@@ -7,7 +7,8 @@ data class ProductListUiState(
     val isLoading: Boolean = false,
     val isLoaded: Boolean = false,
     val firstColumn: List<CatalogProduct> = emptyList(),
-    val secondColumn: List<CatalogProduct> = emptyList()
+    val secondColumn: List<CatalogProduct> = emptyList(),
+    val hasMore: Boolean = true
 )
 
 sealed interface ProductListEffect {

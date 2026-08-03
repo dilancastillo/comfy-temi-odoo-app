@@ -61,7 +61,8 @@ class ProductsUserViewModel(
             firstColumnTitle = "Combos",
             secondColumnTitle = "Solos",
             robotLocation = "sanitarios",
-            video = ProductVideo.SANITARY
+            video = ProductVideo.SANITARY,
+            pageSize = 15
         )
 
         private val TAPS_REQUEST = ProductListRequest(

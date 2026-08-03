@@ -12,9 +12,14 @@ import com.example.comfyapp.databinding.ItemProductBinding
 import com.example.comfyapp.domain.model.Product
 
 class ProductAdapter(
-    private val products: List<Product>,
+    private var products: List<Product>,
     private val onItemClick: (Product) -> Unit
 ) : RecyclerView.Adapter<ProductAdapter.ProductViewHolder>() {
+
+    fun submitProducts(updatedProducts: List<Product>) {
+        products = updatedProducts
+        notifyDataSetChanged()
+    }
 
     inner class ProductViewHolder(
         private val binding: ItemProductBinding

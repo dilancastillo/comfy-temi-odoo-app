@@ -79,6 +79,22 @@ class ProductsViewModelsTest {
         assertEquals(second, state.secondColumn)
     }
 
+    @Test
+    fun `product list accumulates pages using the expected offsets`() {
+        val repository = FakePagedProductRepository()
+        val viewModel = ProductListViewModel(repository)
+        val request = request().copy(pageSize = 2)
+
+        viewModel.load(request)
+        viewModel.loadNextPage()
+
+        val state = requireNotNull(viewModel.state.value)
+        assertEquals(listOf(0, 2), repository.offsets)
+        assertEquals(listOf(1, 2, 3), state.firstColumn.map { it.id })
+        assertEquals(listOf(11, 12, 13), state.secondColumn.map { it.id })
+        assertFalse(state.hasMore)
+    }
+
     private fun request() = ProductListRequest(
         category = ProductCategory.TAPS,
         title = "Griferías",
@@ -114,7 +130,36 @@ private class FakeProductRepository(
 ) : ProductCatalogRepository {
     override fun load(
         request: ProductListRequest,
+        offset: Int,
         onSuccess: (List<CatalogProduct>, List<CatalogProduct>) -> Unit,
         onError: (String) -> Unit
     ) = onSuccess(first, second)
+}
+
+private class FakePagedProductRepository : ProductCatalogRepository {
+    val offsets = mutableListOf<Int>()
+
+    override fun load(
+        request: ProductListRequest,
+        offset: Int,
+        onSuccess: (List<CatalogProduct>, List<CatalogProduct>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        offsets += offset
+        if (offset == 0) {
+            onSuccess(listOf(product(1), product(2)), listOf(product(11), product(12)))
+        } else {
+            onSuccess(listOf(product(3)), listOf(product(13)))
+        }
+    }
+
+    private fun product(id: Int) = CatalogProduct(
+        id = id,
+        name = "Product $id",
+        price = 10.0,
+        stock = 2.0,
+        imageUrl = null,
+        description = null,
+        websiteUrl = null
+    )
 }
