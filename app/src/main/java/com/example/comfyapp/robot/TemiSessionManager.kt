@@ -43,6 +43,8 @@ object TemiSessionManager {
         controller?.notifyUserInteraction()
     }
 
+    fun isAtCenterSala(): Boolean = controller?.isAtCenterSala() == true
+
     fun speak(message: String) {
         Robot.getInstance().speak(TtsRequest.create(message, false))
     }

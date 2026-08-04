@@ -26,4 +26,6 @@ class TemiRobotRepository(
     override fun cancelNavigationForCatalogError() = TemiSessionManager.cancelNavigationForCatalogError()
 
     override fun notifyUserInteraction() = TemiSessionManager.notifyUserInteraction()
+
+    override fun isAtCenterSala() = TemiSessionManager.isAtCenterSala()
 }

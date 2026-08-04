@@ -12,6 +12,8 @@ import kotlin.collections.listOf
 
 object ProductRepository {
 
+    private const val TUNJA_E_LOCATION_ID = 8
+
     /**
      * Trae productos con stock > 0 en una ubicación específica y usados en cierta categoría.
      * Luego agrega la URL de la plantilla (product.template) correspondiente.
@@ -21,7 +23,7 @@ object ProductRepository {
         val timestamp: Long
     )
     private val cache = mutableMapOf<String, CacheEntry>()
-    private val CACHE_TTL = 5 * 60 * 1000 // 5 minutos
+    private val CACHE_TTL = 10 * 60 * 1000 // 5 minutos
 
 
     fun getProductsWithStockAndUrl(
@@ -357,9 +359,8 @@ object ProductRepository {
             }
         }
         val domain = listOf(
-            listOf("parent_category", "ilike", "GRIFERIA"),
+            listOf("parent_category", "ilike", "GRIFERIAS"),
             listOf("child_category", "ilike", "LAVAMANOS"),
-            listOf("location_id.complete_name", "ilike", locationName),
             listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
         )
@@ -380,7 +381,8 @@ object ProductRepository {
             fields = fields,
             limit = limit,
             offset = offset,
-            order = "free_qty desc",
+            order = "id desc",
+            context = mapOf("location" to TUNJA_E_LOCATION_ID),
             onSuccess = { result ->
                 val products = result.mapNotNull {
                     try {
@@ -433,10 +435,8 @@ object ProductRepository {
             }
         }
         val domain = listOf(
-            "&",
-            listOf("parent_category", "ilike", "GRIFERIA"),
+            listOf("parent_category", "ilike", "GRIFERIAS"),
             listOf("child_category", "ilike", "LAVAPLATOS"),
-            listOf("location_id.complete_name", "ilike", locationName),
             listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
         )
@@ -457,7 +457,8 @@ object ProductRepository {
             fields = fields,
             limit = limit,
             offset = offset,
-            order = "free_qty desc",
+            order = "id desc",
+            context = mapOf("location" to TUNJA_E_LOCATION_ID),
             onSuccess = { result ->
                 val products = result.mapNotNull {
                     try {
@@ -510,10 +511,8 @@ object ProductRepository {
             }
         }
         val domain = listOf(
-            "&",
             listOf("parent_category", "ilike", "PORCELANA SANITARIA"),
-            listOf("child_category", "ilike", "COMBO"),
-            listOf("location_id.complete_name", "ilike", locationName),
+            listOf("child_category", "ilike", "COMBOS"),
             listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
         )
@@ -534,7 +533,8 @@ object ProductRepository {
             fields = fields,
             limit = limit,
             offset = offset,
-            order = "free_qty desc",
+            order = "id desc",
+            context = mapOf("location" to TUNJA_E_LOCATION_ID),
             onSuccess = { result ->
                 val products = result.mapNotNull {
                     try {
@@ -587,10 +587,8 @@ object ProductRepository {
             }
         }
         val domain = listOf(
-            "&",
             listOf("parent_category", "ilike", "PORCELANA SANITARIA"),
-            listOf("grandchild_category", "ilike", "one_piece"),
-            listOf("location_id.complete_name", "ilike", locationName),
+            listOf("grandchild_category", "ilike", "ONE PIECE"),
             listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
         )
@@ -611,7 +609,8 @@ object ProductRepository {
             fields = fields,
             limit = limit,
             offset = offset,
-            order = "free_qty desc",
+            order = "id desc",
+            context = mapOf("location" to TUNJA_E_LOCATION_ID),
             onSuccess = { result ->
                 val products = result.mapNotNull {
                     try {

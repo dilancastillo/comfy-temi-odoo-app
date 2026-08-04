@@ -49,7 +49,8 @@ object OdooHelper {
         onError: (String) -> Unit = {},
         order: String,
         limit: Int,
-        offset: Int = 0
+        offset: Int = 0,
+        context: Map<String, Any>? = null
     ) {
         val requestId = System.currentTimeMillis()
         val requestStartedAt = SystemClock.elapsedRealtime()
@@ -79,6 +80,7 @@ object OdooHelper {
                     addProperty("limit", limit)
                     addProperty("offset", offset)
                     addProperty("order", order)
+                    if (context != null) add("context", Gson().toJsonTree(context))
                 }
                 add(kwargs)
 

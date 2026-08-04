@@ -282,6 +282,8 @@ class TemiController(
         if (!isAtHomeBase) resetInactivityTimer()
     }
 
+    fun isAtCenterSala(): Boolean = isAtHomeBase
+
     fun cancelNavigationByUser() {
         if (!isNavigating) {
             notifyUserInteraction()

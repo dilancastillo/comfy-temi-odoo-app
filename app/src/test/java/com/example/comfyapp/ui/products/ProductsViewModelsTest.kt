@@ -126,7 +126,8 @@ private class FakeRobotRepository : RobotRepository {
     }
     override fun cancelNavigationByUser() = Unit
     override fun cancelNavigationForCatalogError() = Unit
-    override fun notifyUserInteraction() = Unit
+        override fun notifyUserInteraction() = Unit
+        override fun isAtCenterSala() = false
 }
 
 private class FakeProductRepository(

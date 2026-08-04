@@ -39,10 +39,16 @@ class ProductListUserActivity : AppCompatActivity() {
     private val navigationFailureListener: () -> Unit = { closeVideoOverlay() }
     private var screenEnteredAtMs = 0L
     private val catalogErrorHandler = Handler(Looper.getMainLooper())
+    private val stationaryScreenHandler = Handler(Looper.getMainLooper())
+    private var useStationaryScreenTimeout = false
     private val catalogErrorTimeout = Runnable {
         binding.catalogErrorContainer.visibility = View.GONE
         robotRepository.speak("Dime, ¿en qué te puedo ayudar?")
         openCategories("catalog_error_timeout")
+    }
+    private val stationaryScreenTimeout = Runnable {
+        robotRepository.speak("Dime, ¿en qué te puedo ayudar?")
+        openCategories("navigation_not_started_timeout")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,6 +63,8 @@ class ProductListUserActivity : AppCompatActivity() {
             finish()
             return
         }
+        useStationaryScreenTimeout =
+            !request.showTravelVideo && robotRepository.isAtCenterSala()
 
         viewModel = ViewModelProvider(
             this,
@@ -73,6 +81,7 @@ class ProductListUserActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         cancelCatalogErrorTimeout()
+        cancelStationaryScreenTimeout()
         if (isFinishing) LocationEventManager.clear()
         super.onDestroy()
     }
@@ -82,6 +91,7 @@ class ProductListUserActivity : AppCompatActivity() {
         inactivityNavigator.start()
         TemiSessionManager.addNavigationFailureListener(navigationFailureListener)
         robotRepository.start()
+        if (useStationaryScreenTimeout) scheduleStationaryScreenTimeout()
     }
 
     override fun onStop() {
@@ -91,6 +101,7 @@ class ProductListUserActivity : AppCompatActivity() {
                 "isFinishing=$isFinishing"
         )
         cancelCatalogErrorTimeout()
+        cancelStationaryScreenTimeout()
         inactivityNavigator.stop()
         TemiSessionManager.removeNavigationFailureListener(navigationFailureListener)
         robotRepository.stop()
@@ -103,6 +114,7 @@ class ProductListUserActivity : AppCompatActivity() {
             Log.i(TAG, "generic_interaction_ignored_while_error_panel_is_visible")
             return
         }
+        if (useStationaryScreenTimeout) scheduleStationaryScreenTimeout()
         robotRepository.notifyUserInteraction()
     }
 
@@ -161,6 +173,7 @@ class ProductListUserActivity : AppCompatActivity() {
                             "durationMs=${SystemClock.elapsedRealtime() - screenEnteredAtMs}"
                     )
                     closeVideoOverlay()
+                    cancelStationaryScreenTimeout()
                     robotRepository.cancelNavigationForCatalogError()
                     binding.catalogErrorContainer.visibility = View.VISIBLE
                     scheduleCatalogErrorTimeout("initial_error")
@@ -221,6 +234,23 @@ class ProductListUserActivity : AppCompatActivity() {
         catalogErrorHandler.removeCallbacks(catalogErrorTimeout)
     }
 
+    private fun scheduleStationaryScreenTimeout() {
+        cancelStationaryScreenTimeout()
+        Log.i(
+            TAG,
+            "stationary_screen_timer_scheduled timeoutMs=$STATIONARY_SCREEN_TIMEOUT_MS " +
+                "durationMs=${SystemClock.elapsedRealtime() - screenEnteredAtMs}"
+        )
+        stationaryScreenHandler.postDelayed(
+            stationaryScreenTimeout,
+            STATIONARY_SCREEN_TIMEOUT_MS
+        )
+    }
+
+    private fun cancelStationaryScreenTimeout() {
+        stationaryScreenHandler.removeCallbacks(stationaryScreenTimeout)
+    }
+
     private fun openCategories(reason: String) {
         Log.i(
             TAG,
@@ -251,6 +281,7 @@ class ProductListUserActivity : AppCompatActivity() {
         private const val TAG = "ProductListTiming"
         private const val EXTRA_REQUEST = "product_list_request"
         private const val CATALOG_ERROR_TIMEOUT_MS = 60_000L
+        private const val STATIONARY_SCREEN_TIMEOUT_MS = 60_000L
 
         fun createIntent(context: Context, request: ProductListRequest) =
             Intent(context, ProductListUserActivity::class.java).apply {
