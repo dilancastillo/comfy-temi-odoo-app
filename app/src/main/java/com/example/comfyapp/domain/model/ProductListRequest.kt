@@ -12,7 +12,12 @@ data class ProductListRequest(
     val video: ProductVideo,
     val usedInIds: List<Int> = emptyList(),
     val pageSize: Int = 8,
-    val showTravelVideo: Boolean = true
+    val showTravelVideo: Boolean = true,
+    // orden para cada columna: "free_qty desc" | "free_qty asc"
+    val firstColumnOrder: String = "free_qty desc",
+    val secondColumnOrder: String = "free_qty desc",
+    // límite total de productos por columna (0 = sin límite)
+    val maxProductsPerColumn: Int = 0
 ) : Serializable
 
 enum class ProductVideo : Serializable {

@@ -71,7 +71,8 @@ class ProductsUserViewModel(
             firstColumnTitle = "Lavamanos",
             secondColumnTitle = "Lavaplatos",
             robotLocation = "griferias",
-            video = ProductVideo.TAPS
+            video = ProductVideo.TAPS,
+            maxProductsPerColumn = 15
         )
     }
 }

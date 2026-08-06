@@ -8,17 +8,18 @@
     <!-- ICONO REGRESAR -->
     <ImageView
         android:id="@+id/imgbtnback"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
         android:src="@drawable/regresar"
         android:contentDescription="Regresar"
         android:clickable="true"
         android:focusable="true"
         android:tint="@color/transparentBack"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"/>
+        android:layout_marginEnd="20dp"
+        android:layout_marginTop="5dp"/>
     <ImageView
         android:id="@+id/imgLogo"
         android:layout_width="650dp"

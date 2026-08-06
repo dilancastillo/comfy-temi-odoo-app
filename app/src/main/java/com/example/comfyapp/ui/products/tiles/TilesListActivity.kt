@@ -70,9 +70,6 @@ class TilesListActivity : AppCompatActivity() {
         btnbathrooms.setOnClickListener {
             viewModel.onAction(TilesAction.Select(TileCategory.BATHROOMS))
         }
-        btnKitchens.setOnClickListener {
-            viewModel.onAction(TilesAction.Select(TileCategory.KITCHENS))
-        }
         btnZoneSocial.setOnClickListener {
             viewModel.onAction(TilesAction.Select(TileCategory.SOCIAL_AREAS))
         }

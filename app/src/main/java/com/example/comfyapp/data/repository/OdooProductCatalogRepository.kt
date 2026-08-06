@@ -62,6 +62,54 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     limit = request.pageSize
                 )
             }
+            ProductCategory.FLOOR_AND_WALL_BATHROOMS -> {
+                ProductRepository.getBathroomsWall(
+                    onSuccess = firstSuccess,
+                    onError = ::handleError,
+                    offset = offset,
+                    limit = request.pageSize,
+                    order = request.firstColumnOrder
+                )
+                ProductRepository.getBathroomsFloorAndWall(
+                    onSuccess = secondSuccess,
+                    onError = ::handleError,
+                    offset = offset,
+                    limit = request.pageSize,
+                    order = request.secondColumnOrder
+                )
+            }
+            ProductCategory.FLOOR_AND_WALL_SOCIAL -> {
+                ProductRepository.getSocialWall(
+                    onSuccess = firstSuccess,
+                    onError = ::handleError,
+                    offset = offset,
+                    limit = request.pageSize,
+                    order = request.firstColumnOrder
+                )
+                ProductRepository.getSocialFloorAndWall(
+                    onSuccess = secondSuccess,
+                    onError = ::handleError,
+                    offset = offset,
+                    limit = request.pageSize,
+                    order = request.secondColumnOrder
+                )
+            }
+            ProductCategory.FLOOR_AND_WALL_EXTERIORS -> {
+                ProductRepository.getExteriorsWall(
+                    onSuccess = firstSuccess,
+                    onError = ::handleError,
+                    offset = offset,
+                    limit = 5,
+                    order = request.firstColumnOrder
+                )
+                ProductRepository.getExteriorsFloorAndWall(
+                    onSuccess = secondSuccess,
+                    onError = ::handleError,
+                    offset = offset,
+                    limit = 6,
+                    order = request.secondColumnOrder
+                )
+            }
             ProductCategory.TAPS -> {
                 ProductRepository.getProductsTapsLavaM(
                     locationName = DEFAULT_LOCATION,

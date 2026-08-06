@@ -7,5 +7,5 @@
     <color name="text_primary">#212121</color>
     <color name="text_secondary">#757575</color>
     <color name="white">#FFFFFF</color>
-    <color name="transparentBack">#E0E1E1</color>
+    <color name="transparentBack">#d4d4dc</color>
 </resources>

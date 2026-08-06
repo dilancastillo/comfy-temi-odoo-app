@@ -55,13 +55,19 @@ class ProductListViewModel(
             onSuccess = { first, second ->
                 val firstColumn = (previous.firstColumn + first).distinctBy { it.id }
                 val secondColumn = (previous.secondColumn + second).distinctBy { it.id }
+                val max = request.maxProductsPerColumn
+                val firstTrimmed = if (max > 0) firstColumn.take(max) else firstColumn
+                val secondTrimmed = if (max > 0) secondColumn.take(max) else secondColumn
                 nextOffset += request.pageSize
+                val reachedMax = max > 0 &&
+                    firstTrimmed.size >= max && secondTrimmed.size >= max
                 _state.value = ProductListUiState(
                     isLoading = false,
                     isLoaded = true,
-                    firstColumn = firstColumn,
-                    secondColumn = secondColumn,
-                    hasMore = first.size == request.pageSize || second.size == request.pageSize
+                    firstColumn = firstTrimmed,
+                    secondColumn = secondTrimmed,
+                    hasMore = !reachedMax &&
+                        (first.size == request.pageSize || second.size == request.pageSize)
                 )
             },
             onError = { message ->

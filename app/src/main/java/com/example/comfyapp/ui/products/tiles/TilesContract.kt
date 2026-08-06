@@ -3,7 +3,7 @@ package com.example.comfyapp.ui.products.tiles
 
 import com.example.comfyapp.domain.model.ProductListRequest
 
-enum class TileCategory { BATHROOMS, KITCHENS, SOCIAL_AREAS, EXTERIORS }
+enum class TileCategory { BATHROOMS, SOCIAL_AREAS, EXTERIORS }
 
 sealed interface TilesAction {
     data class Select(val category: TileCategory) : TilesAction

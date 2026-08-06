@@ -59,8 +59,8 @@ class ProductsViewModelsTest {
         viewModel.onAction(TilesAction.Select(TileCategory.SOCIAL_AREAS))
 
         val effect = viewModel.effect.value as TilesEffect.OpenProductList
-        assertEquals(listOf(24, 13, 18), effect.request.usedInIds)
-        assertEquals("pisos exteriores alfa", robot.lastLocation)
+        assertEquals(ProductCategory.FLOOR_AND_WALL_SOCIAL, effect.request.category)
+        assertEquals("zona social revestimiento", robot.lastLocation)
     }
 
     @Test

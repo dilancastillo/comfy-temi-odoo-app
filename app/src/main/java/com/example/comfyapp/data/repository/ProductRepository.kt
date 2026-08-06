@@ -182,7 +182,7 @@ object ProductRepository {
             onError = onError
         )
     }
-    //pisos y paredes
+    //pisos y paredes-
     fun getProductsAllFloor(
         locationName: String = "Tunja/E",
         usedInId: List<Int>,
@@ -358,13 +358,15 @@ object ProductRepository {
                 return
             }
         }
+
         val domain = listOf(
             listOf("parent_category", "ilike", "GRIFERIAS"),
             listOf("child_category", "ilike", "LAVAMANOS"),
             listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
+            listOf("stock_quant_ids.location_id", "ilike", locationName),
+            listOf("stock_quant_ids.location_id.location_id.usage", "=", "internal")
         )
-
 
         val fields = listOf(
             "id",
@@ -434,13 +436,15 @@ object ProductRepository {
                 return
             }
         }
+
         val domain = listOf(
             listOf("parent_category", "ilike", "GRIFERIAS"),
             listOf("child_category", "ilike", "LAVAPLATOS"),
             listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
+            listOf("stock_quant_ids.location_id", "ilike", locationName),
+            listOf("stock_quant_ids.location_id.location_id.usage", "=", "internal")
         )
-
 
         val fields = listOf(
             "id",
@@ -458,7 +462,7 @@ object ProductRepository {
             limit = limit,
             offset = offset,
             order = "id desc",
-            context = mapOf("location" to TUNJA_E_LOCATION_ID),
+            context = mapOf("location" to TUNJA_E_LOCATION_ID), // id 8 = Tunja/E, Odoo suma automáticamente todos los hijos
             onSuccess = { result ->
                 val products = result.mapNotNull {
                     try {
@@ -510,13 +514,15 @@ object ProductRepository {
                 return
             }
         }
+
         val domain = listOf(
             listOf("parent_category", "ilike", "PORCELANA SANITARIA"),
             listOf("child_category", "ilike", "COMBOS"),
             listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
+            listOf("stock_quant_ids.location_id", "ilike", locationName),
+            listOf("stock_quant_ids.location_id.location_id.usage", "=", "internal")
         )
-
 
         val fields = listOf(
             "id",
@@ -566,6 +572,194 @@ object ProductRepository {
             onError = onError
         )
     }
+    // -------------------------------------------------------
+    // BAÑOS — Únicamente Paredes
+    // filtro: format ilike 30x60 OR 30x45, traffic=Pared, stock>10, published, contexto 8
+    // -------------------------------------------------------
+    fun getBathroomsWall(
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 8,
+        order: String = "id desc"
+    ) {
+        val cacheKey = "baths_wall_${offset}_${limit}_$order"
+        val now = System.currentTimeMillis()
+        cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
+
+        val domain = listOf(
+            "|",
+            listOf("x_studio_format_related", "ilike", "30x60"),
+            listOf("x_studio_format_related", "ilike", "30x45"),
+            listOf("tech_traffic", "ilike", "Pared"),
+            listOf("free_qty", ">", 10),
+            listOf("website_published", "!=", false)
+        )
+        fetchProducts(domain, order, limit, offset, cacheKey, now, onSuccess, onError)
+    }
+
+    // BAÑOS — Pisos y Paredes
+    // filtro: format ilike 30x60 OR 30x45, traffic!=Pared, stock>10, published, contexto 8
+    fun getBathroomsFloorAndWall(
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 8,
+        order: String = "id desc"
+    ) {
+        val cacheKey = "baths_floor_${offset}_${limit}_$order"
+        val now = System.currentTimeMillis()
+        cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
+
+        val domain = listOf(
+            "|",
+            listOf("x_studio_format_related", "ilike", "30x60"),
+            listOf("x_studio_format_related", "ilike", "30x45"),
+            listOf("tech_traffic", "!=", "Pared"),
+            listOf("free_qty", ">", 10),
+            listOf("website_published", "!=", false)
+        )
+        fetchProducts(domain, order, limit, offset, cacheKey, now, onSuccess, onError)
+    }
+
+    // -------------------------------------------------------
+    // ZONA SOCIAL — Únicamente Paredes
+    // filtro: categ_id in 380, traffic!=Pared, stock>10, published, asc, 10 productos, contexto 8
+    // -------------------------------------------------------
+    fun getSocialWall(
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 10,
+        order: String = "id asc"
+    ) {
+        val cacheKey = "social_wall_${offset}_${limit}_$order"
+        val now = System.currentTimeMillis()
+        cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
+
+        val domain = listOf(
+            listOf("categ_id", "in", listOf(380)),
+            listOf("tech_traffic", "!=", "Pared"),
+            listOf("free_qty", ">", 10),
+            listOf("website_published", "!=", false)
+        )
+        fetchProducts(domain, order, limit, offset, cacheKey, now, onSuccess, onError)
+    }
+
+    // ZONA SOCIAL — Pisos y Paredes
+    // filtro: categ_id in 380, traffic!=Pared, stock>10, published, desc, 10 productos, contexto 8
+    fun getSocialFloorAndWall(
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 10,
+        order: String = "id desc"
+    ) {
+        val cacheKey = "social_floor_${offset}_${limit}_$order"
+        val now = System.currentTimeMillis()
+        cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
+
+        val domain = listOf(
+            listOf("categ_id", "in", listOf(380)),
+            listOf("tech_traffic", "!=", "Pared"),
+            listOf("free_qty", ">", 10),
+            listOf("website_published", "!=", false)
+        )
+        fetchProducts(domain, order, limit, offset, cacheKey, now, onSuccess, onError)
+    }
+
+    // -------------------------------------------------------
+    // EXTERIORES — Únicamente Paredes
+    // filtro: categ_id in 2437, traffic!=Pared, stock>10, published, desc, 5 productos, contexto 8
+    // -------------------------------------------------------
+    fun getExteriorsWall(
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 5,
+        order: String = "id desc"
+    ) {
+        val cacheKey = "ext_wall_${offset}_${limit}_$order"
+        val now = System.currentTimeMillis()
+        cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
+
+        val domain = listOf(
+            listOf("categ_id", "in", listOf(2437)),
+            listOf("tech_traffic", "!=", "Pared"),
+            listOf("free_qty", ">", 10),
+            listOf("website_published", "!=", false)
+        )
+        fetchProducts(domain, order, limit, offset, cacheKey, now, onSuccess, onError)
+    }
+
+    // EXTERIORES — Pisos y Paredes
+    // filtro: categ_id in 2437, traffic!=Pared, stock>10, published, asc, 6 productos, contexto 8
+    fun getExteriorsFloorAndWall(
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 6,
+        order: String = "id asc"
+    ) {
+        val cacheKey = "ext_floor_${offset}_${limit}_$order"
+        val now = System.currentTimeMillis()
+        cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
+
+        val domain = listOf(
+            listOf("categ_id", "in", listOf(2437)),
+            listOf("tech_traffic", "!=", "Pared"),
+            listOf("free_qty", ">", 10),
+            listOf("website_published", "!=", false)
+        )
+        fetchProducts(domain, order, limit, offset, cacheKey, now, onSuccess, onError)
+    }
+
+    // -------------------------------------------------------
+    // Helper interno compartido por los 6 métodos anteriores
+    // -------------------------------------------------------
+    private fun fetchProducts(
+        domain: List<Any>,
+        order: String,
+        limit: Int,
+        offset: Int,
+        cacheKey: String,
+        now: Long,
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val fields = listOf("id", "name", "free_qty", "website_url", "list_price")
+        OdooHelper.executeOdooRpc(
+            model = "product.product",
+            method = "search_read",
+            domain = domain,
+            fields = fields,
+            limit = limit,
+            offset = offset,
+            order = order, // Odoo ordena por id asc/desc según la columna
+            context = mapOf("location" to TUNJA_E_LOCATION_ID),
+            onSuccess = { result ->
+                val products = result.mapNotNull {
+                    try {
+                        val obj = it.asJsonObject
+                        val productId = obj["id"].asInt
+                        ModelProductStock(
+                            id = productId,
+                            name = obj["name"].asString,
+                            price = obj["list_price"].asDouble,
+                            free_qty = BigDecimal(obj["free_qty"].asDouble)
+                                .setScale(2, RoundingMode.HALF_UP).toDouble(),
+                            imageUrl = "$BASE_URL/web/image/product.product/$productId/image_512",
+                            website_url = obj["website_url"]?.asString
+                        )
+                    } catch (e: Exception) { null }
+                }
+                cache[cacheKey] = CacheEntry(data = products, timestamp = now)
+                onSuccess(products)
+            },
+            onError = onError
+        )
+    }
+
     //sanitarios solos
     fun getProductsSanitaryOnly(
         locationName: String = "Tunja/E",
@@ -586,13 +780,15 @@ object ProductRepository {
                 return
             }
         }
+
         val domain = listOf(
             listOf("parent_category", "ilike", "PORCELANA SANITARIA"),
             listOf("grandchild_category", "ilike", "ONE PIECE"),
             listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
+            listOf("stock_quant_ids.location_id", "ilike", locationName),
+            listOf("stock_quant_ids.location_id.location_id.usage", "=", "internal")
         )
-
 
         val fields = listOf(
             "id",

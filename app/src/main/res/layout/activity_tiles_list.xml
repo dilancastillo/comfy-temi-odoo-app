@@ -118,7 +118,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Baños"
+                        android:text="Baños y Cocinas"
                         android:textSize="38sp"
                         android:textStyle="bold"
                         android:textColor="@android:color/white"/>
@@ -129,50 +129,50 @@
         </com.google.android.material.card.MaterialCardView>
 
         <!-- CARD 2 -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/btn_kitchens"
-            android:layout_width="0dp"
-            android:layout_height="380dp"
-            android:layout_columnWeight="1"
-            android:layout_margin="12dp"
-            android:clickable="true"
-            android:foreground="?attr/selectableItemBackground"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="5dp"
-            app:strokeWidth="0dp">
+<!--        <com.google.android.material.card.MaterialCardView-->
+<!--            android:id="@+id/btn_kitchens"-->
+<!--            android:layout_width="0dp"-->
+<!--            android:layout_height="380dp"-->
+<!--            android:layout_columnWeight="1"-->
+<!--            android:layout_margin="12dp"-->
+<!--            android:clickable="true"-->
+<!--            android:foreground="?attr/selectableItemBackground"-->
+<!--            app:cardCornerRadius="14dp"-->
+<!--            app:cardElevation="5dp"-->
+<!--            app:strokeWidth="0dp">-->
 
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
+<!--            <FrameLayout-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="match_parent">-->
 
-                <ImageView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/img_kitchens" />
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="#66000000"/>
+<!--                <ImageView-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="match_parent"-->
+<!--                    android:scaleType="centerCrop"-->
+<!--                    android:src="@drawable/img_kitchens" />-->
+<!--                <View-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="match_parent"-->
+<!--                    android:background="#66000000"/>-->
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="vertical">
+<!--                <LinearLayout-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="match_parent"-->
+<!--                    android:gravity="center"-->
+<!--                    android:orientation="vertical">-->
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Cocina"
-                        android:textSize="38sp"
-                        android:textStyle="bold"
-                        android:textColor="@android:color/white"/>
+<!--                    <TextView-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:text="Cocina"-->
+<!--                        android:textSize="38sp"-->
+<!--                        android:textStyle="bold"-->
+<!--                        android:textColor="@android:color/white"/>-->
 
-                </LinearLayout>
+<!--                </LinearLayout>-->
 
-            </FrameLayout>
-        </com.google.android.material.card.MaterialCardView>
+<!--            </FrameLayout>-->
+<!--        </com.google.android.material.card.MaterialCardView>-->
 
         <!-- CARD 3 -->
         <com.google.android.material.card.MaterialCardView

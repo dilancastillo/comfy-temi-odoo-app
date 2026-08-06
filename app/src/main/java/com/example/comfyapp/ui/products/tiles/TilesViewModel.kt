@@ -45,21 +45,42 @@ class TilesViewModel(
         _effect.value = null
     }
 
-    private fun requestFor(category: TileCategory): ProductListRequest {
-        val (title, usedInIds) = when (category) {
-            TileCategory.BATHROOMS -> "Pisos y paredes para Baños y zonas húmedas" to listOf(15)
-            TileCategory.KITCHENS -> "Pisos y paredes para Cocinas" to listOf(14)
-            TileCategory.SOCIAL_AREAS -> "Pisos y Paredes para Zonas Sociales" to listOf(24, 13, 18)
-            TileCategory.EXTERIORS -> "Pisos y Paredes para Exteriores" to listOf(17)
-        }
-        return ProductListRequest(
-            category = ProductCategory.FLOOR_AND_WALL,
-            title = title,
+    private fun requestFor(category: TileCategory): ProductListRequest = when (category) {
+        TileCategory.BATHROOMS -> ProductListRequest(
+            category = ProductCategory.FLOOR_AND_WALL_BATHROOMS,
+            title = "Pisos y paredes para Baños y Cocinas",
+            firstColumnTitle = "Únicamente para Paredes",
+            secondColumnTitle = "Para Pisos y Paredes",
+            robotLocation = "baños revestimientos alfa",
+            video = ProductVideo.FLOOR_AND_WALL,
+            pageSize = 8,
+            maxProductsPerColumn = 10,
+            firstColumnOrder = "id desc",
+            secondColumnOrder = "id desc"
+        )
+        TileCategory.SOCIAL_AREAS -> ProductListRequest(
+            category = ProductCategory.FLOOR_AND_WALL_SOCIAL,
+            title = "Pisos y Paredes para Zonas Sociales",
+            firstColumnTitle = "Únicamente para Paredes",
+            secondColumnTitle = "Para Pisos y Paredes",
+            robotLocation = "zona social revestimiento",
+            video = ProductVideo.FLOOR_AND_WALL,
+            pageSize = 10,
+            maxProductsPerColumn = 10,
+            firstColumnOrder = "id asc",
+            secondColumnOrder = "id desc"
+        )
+        TileCategory.EXTERIORS -> ProductListRequest(
+            category = ProductCategory.FLOOR_AND_WALL_EXTERIORS,
+            title = "Pisos y Paredes para Exteriores",
             firstColumnTitle = "Únicamente para Paredes",
             secondColumnTitle = "Para Pisos y Paredes",
             robotLocation = "pisos exteriores alfa",
             video = ProductVideo.FLOOR_AND_WALL,
-            usedInIds = usedInIds
+            pageSize = 6,
+            maxProductsPerColumn = 6,
+            firstColumnOrder = "id desc",
+            secondColumnOrder = "id asc"
         )
     }
 }
