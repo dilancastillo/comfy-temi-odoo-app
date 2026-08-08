@@ -155,7 +155,7 @@ class TemiController(
 
             // Solo habla si NO es Home Base ni Centro Sala
             if (!isHomeBase && !isCentroSala) {
-                speak("Aquí puedes ver las últimas tendencias para la zona que seleccionaste")
+                speak("Aquí puedes ver las últimas tendencias para la zona que seleccionaste. Además, puedes ver sus especificaciones haciendo clic sobre cada producto.")
             }
 
             if (location.equals("centro sala", ignoreCase = true)) {
