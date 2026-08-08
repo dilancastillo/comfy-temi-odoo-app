@@ -9,5 +9,6 @@ interface RobotRepository {
     fun cancelNavigationByUser()
     fun cancelNavigationForCatalogError()
     fun notifyUserInteraction()
+    fun isNavigationInProgress(): Boolean
     fun isAtCenterSala(): Boolean
 }

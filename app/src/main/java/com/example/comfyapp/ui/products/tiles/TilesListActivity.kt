@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.comfyapp.ui.products.list.ProductListUserActivity
 import com.example.comfyapp.ui.products.category.ProductsUserActivity
 import com.example.comfyapp.databinding.ActivityTilesListBinding
+import com.example.comfyapp.agent.AgentSpeechController
 import com.example.comfyapp.robot.TemiRobotRepository
 import com.example.comfyapp.ui.SimpleViewModelFactory
 import com.example.comfyapp.ui.RobotInactivityNavigator
@@ -21,6 +22,8 @@ class TilesListActivity : AppCompatActivity() {
     private val inactivityNavigator by lazy { RobotInactivityNavigator(this) }
     private val screenInactivityHandler = Handler(Looper.getMainLooper())
     private val screenInactivityTimeout = Runnable { openCategories() }
+    private val speechController = AgentSpeechController.shared
+    private var waitingToOpenProductList = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,7 +40,18 @@ class TilesListActivity : AppCompatActivity() {
         bindActions()
         observeEffects()
 
-        if (savedInstanceState == null) viewModel.announceScreen()
+        if (savedInstanceState == null) {
+            // Si llegamos desde el agente con una categoría preseleccionada, la disparamos directo
+            val categoryName = intent.getStringExtra(EXTRA_CATEGORY)
+            val preselected = categoryName?.let {
+                runCatching { TileCategory.valueOf(it) }.getOrNull()
+            }
+            if (preselected != null) {
+                viewModel.onAction(TilesAction.Select(preselected))
+            } else {
+                viewModel.announceScreen()
+            }
+        }
     }
 
     override fun onStart() {
@@ -56,6 +70,9 @@ class TilesListActivity : AppCompatActivity() {
 
     override fun onUserInteraction() {
         super.onUserInteraction()
+        if (waitingToOpenProductList) {
+            return
+        }
         resetScreenInactivityTimer()
         viewModel.onAction(TilesAction.UserInteraction)
     }
@@ -68,21 +85,20 @@ class TilesListActivity : AppCompatActivity() {
     private fun bindActions() = with(binding) {
         imgbtnback.setOnClickListener { viewModel.onAction(TilesAction.Back) }
         btnbathrooms.setOnClickListener {
-            viewModel.onAction(TilesAction.Select(TileCategory.BATHROOMS))
+            handleTileSelection(TileCategory.BATHROOMS)
         }
         btnZoneSocial.setOnClickListener {
-            viewModel.onAction(TilesAction.Select(TileCategory.SOCIAL_AREAS))
+            handleTileSelection(TileCategory.SOCIAL_AREAS)
         }
         btnExterior.setOnClickListener {
-            viewModel.onAction(TilesAction.Select(TileCategory.EXTERIORS))
+            handleTileSelection(TileCategory.EXTERIORS)
         }
     }
 
     private fun observeEffects() {
         viewModel.effect.observe(this) { effect ->
             when (effect) {
-                is TilesEffect.OpenProductList ->
-                    startActivity(ProductListUserActivity.createIntent(this, effect.request))
+                is TilesEffect.OpenProductList -> openProductList(effect.request)
                 TilesEffect.Close -> finish()
                 null -> return@observe
             }
@@ -107,7 +123,42 @@ class TilesListActivity : AppCompatActivity() {
         )
     }
 
+    private fun openProductList(request: com.example.comfyapp.domain.model.ProductListRequest) {
+        val openScreen = {
+            if (!isFinishing) {
+                startActivity(ProductListUserActivity.createIntent(this, request))
+            }
+        }
+        if (request.showTravelVideo) {
+            waitingToOpenProductList = true
+            speechController.speak("¡Excelente! Acompáñame.") {
+                if (waitingToOpenProductList) {
+                    waitingToOpenProductList = false
+                    openScreen()
+                }
+            }
+        } else {
+            openScreen()
+        }
+    }
+
+    private fun handleTileSelection(category: TileCategory) {
+        if (waitingToOpenProductList) {
+            cancelPendingProductLaunch()
+            return
+        }
+        viewModel.onAction(TilesAction.Select(category))
+    }
+
+    private fun cancelPendingProductLaunch() {
+        if (!waitingToOpenProductList) return
+        waitingToOpenProductList = false
+        speechController.stopSpeaking()
+        viewModel.cancelNavigationByUser()
+    }
+
     companion object {
+        const val EXTRA_CATEGORY = "extra_tile_category"
         private const val SCREEN_INACTIVITY_TIMEOUT_MS = 60_000L
     }
 }

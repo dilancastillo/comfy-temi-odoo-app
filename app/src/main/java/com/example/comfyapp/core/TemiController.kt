@@ -6,8 +6,8 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import com.example.comfyapp.agent.AgentSpeechController
 import com.robotemi.sdk.Robot
-import com.robotemi.sdk.TtsRequest
 import com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener
 import com.robotemi.sdk.listeners.OnRobotReadyListener
 import com.robotemi.sdk.navigation.model.SpeedLevel
@@ -19,7 +19,8 @@ class TemiController(
     private val onStatus: (String) -> Unit,
     private val onArrived: (() -> Unit)? = null,
     private val onReturnedByInactivity: (() -> Unit)? = null,
-    private val onNavigationFailed: (() -> Unit)? = null
+    private val onNavigationFailed: (() -> Unit)? = null,
+    private val onNavigationStateChanged: ((Boolean) -> Unit)? = null
 ) : OnRobotReadyListener, OnGoToLocationStatusChangedListener {
 
     private val robot: Robot = Robot.getInstance()
@@ -80,7 +81,7 @@ class TemiController(
         val target = location.lowercase()
         if (!robot.locations.map { it.lowercase() }.contains(target)) {
             toast("Ubicación no existe: $target")
-            robot.speak(TtsRequest.create("Hubo un error de ubicación, pero puedes ver el catálogo", false))
+            speak("Hubo un error de ubicación, pero puedes ver el catálogo")
             handleNavigationStartFailure(automaticReturn)
             return false
         }
@@ -93,6 +94,7 @@ class TemiController(
 
         isAtHomeBase = false
         isNavigating = true
+        onNavigationStateChanged?.invoke(true)
         returningToCenter = automaticReturn
         activeTarget = target
         navigationStartedByUser = true
@@ -107,6 +109,7 @@ class TemiController(
         } catch (error: Exception) {
             Log.e(TAG, "No se pudo iniciar la navegación", error)
             isNavigating = false
+            onNavigationStateChanged?.invoke(false)
             activeTarget = null
             handleNavigationStartFailure(automaticReturn)
             return false
@@ -124,6 +127,11 @@ class TemiController(
     ) {
         Log.d(TAG, "GoTo $location → $status")
 
+        Log.d(
+            TAG,
+            "GoTo details location=$location status=$status " +
+                "descriptionId=$descriptionId description=$description"
+        )
         val normalizedLocation = location.lowercase()
         if (cancelledTarget == normalizedLocation) {
             if (status == "abort" || status == "complete") cancelledTarget = null
@@ -132,11 +140,12 @@ class TemiController(
 
         if (status == "complete") {
             isNavigating = false
+            onNavigationStateChanged?.invoke(false)
             abortExpectedFromUser = false
             navigationStartedByUser = false
             returningToCenter = false
             activeTarget = null
-            robot.cancelAllTtsRequests()
+            stopSpeaking()
 
             LocationEventManager.notifyLocationArrived(location)
             last_location = location
@@ -146,12 +155,7 @@ class TemiController(
 
             // Solo habla si NO es Home Base ni Centro Sala
             if (!isHomeBase && !isCentroSala) {
-                robot.speak(
-                    TtsRequest.create(
-                        "Aquí puedes ver las últimas tendencias para la zona que seleccionaste",
-                        false
-                    )
-                )
+                speak("Aquí puedes ver las últimas tendencias para la zona que seleccionaste")
             }
 
             if (location.equals("centro sala", ignoreCase = true)) {
@@ -199,18 +203,14 @@ class TemiController(
         if (status == "abort") {
             val failedWhileReturning = returningToCenter
             isNavigating = false
+            onNavigationStateChanged?.invoke(false)
             returningToCenter = false
             activeTarget = null
 
             if (abortExpectedFromUser) {
                 Log.d(TAG, "Abort por interacción humana")
 
-                robot.speak(
-                    TtsRequest.create(
-                        "¿En qué te puedo ayudar? Toca alguna opción en mi pantalla y te guiaré",
-                        false
-                    )
-                )
+                speak("¿En qué te puedo ayudar? Toca alguna opción en mi pantalla y te guiaré")
 
                 resetInactivityTimer()
             } else {
@@ -220,7 +220,7 @@ class TemiController(
                 } else {
                     "No pude llegar a mi destino"
                 }
-                robot.speak(TtsRequest.create(message, false))
+                speak(message)
                 onNavigationFailed?.invoke()
                 if (failedWhileReturning) onReturnedByInactivity?.invoke()
                 resetInactivityTimer()
@@ -244,7 +244,7 @@ class TemiController(
                 return
             }
             Log.i(TAG, "Ejecutando sequence ${sequence.name}")
-            robot.cancelAllTtsRequests()
+            stopSpeaking()
             robot.playSequence(
                 sequence.id,
                 false,
@@ -282,7 +282,17 @@ class TemiController(
         if (!isAtHomeBase) resetInactivityTimer()
     }
 
+    private fun speak(message: String) {
+        AgentSpeechController.shared.speak(message)
+    }
+
+    private fun stopSpeaking() {
+        AgentSpeechController.shared.stopSpeaking()
+    }
+
     fun isAtCenterSala(): Boolean = isAtHomeBase
+
+    fun isNavigationInProgress(): Boolean = isNavigating
 
     fun cancelNavigationByUser() {
         if (!isNavigating) {
@@ -294,11 +304,12 @@ class TemiController(
         arrivedHomeByInactivity = false
         activeTarget = null
         isNavigating = false
+        onNavigationStateChanged?.invoke(false)
         returningToCenter = false
         abortExpectedFromUser = false
         robot.stopMovement()
-        robot.cancelAllTtsRequests()
-        robot.speak(TtsRequest.create("Dime, ¿en qué te puedo ayudar?", false))
+        stopSpeaking()
+        speak("Dime, ¿en qué te puedo ayudar?")
         onNavigationFailed?.invoke()
         resetInactivityTimer()
     }
@@ -308,12 +319,13 @@ class TemiController(
             cancelledTarget = activeTarget
             activeTarget = null
             isNavigating = false
+            onNavigationStateChanged?.invoke(false)
             returningToCenter = false
             arrivedHomeByInactivity = false
             robot.stopMovement()
         }
-        robot.cancelAllTtsRequests()
-        robot.speak(TtsRequest.create("No pude cargar el catálogo. Puedes intentarlo nuevamente.", false))
+        stopSpeaking()
+        speak("No pude cargar el catálogo. Puedes intentarlo nuevamente.")
         onNavigationFailed?.invoke()
         if (!isAtHomeBase) resetInactivityTimer()
     }
@@ -340,13 +352,8 @@ class TemiController(
 
             arrivedHomeByInactivity = true
 
-            robot.cancelAllTtsRequests()
-            robot.speak(
-                TtsRequest.create(
-                    "Gracias por interactuar conmigo, regresaré a Centro Sala",
-                    false
-                )
-            )
+            stopSpeaking()
+            speak("Gracias por interactuar conmigo, regresaré a Centro Sala")
 
             goToLocation("centro sala", automaticReturn = true)
         }
@@ -356,6 +363,7 @@ class TemiController(
 
     private fun handleNavigationStartFailure(automaticReturn: Boolean) {
         isNavigating = false
+        onNavigationStateChanged?.invoke(false)
         returningToCenter = false
         activeTarget = null
         onNavigationFailed?.invoke()

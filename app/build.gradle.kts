@@ -34,6 +34,11 @@ android {
         buildConfigField("String", "ODOO_DB",       "\"${localProps.getProperty("ODOO_DB")}\"")
         buildConfigField("int",    "ODOO_UID",      localProps.getProperty("ODOO_UID"))
         buildConfigField("String", "ODOO_API_KEY",  "\"${localProps.getProperty("ODOO_API_KEY")}\"")
+        buildConfigField("String", "AZURE_SPEECH_KEY",    "\"${localProps.getProperty("AZURE_SPEECH_KEY", "")}\"")
+        buildConfigField("String", "AZURE_SPEECH_REGION", "\"${localProps.getProperty("AZURE_SPEECH_REGION", "")}\"")
+        buildConfigField("String", "AZURE_SPEECH_VOICE",  "\"${localProps.getProperty("AZURE_SPEECH_VOICE", "")}\"")
+        buildConfigField("String", "GEMINI_API_KEY",      "\"${localProps.getProperty("GEMINI_API_KEY", "")}\"")
+        buildConfigField("String", "GEMINI_MODEL",        "\"${localProps.getProperty("GEMINI_MODEL", "")}\"")
 
     }
 
@@ -79,5 +84,7 @@ dependencies {
     // MQTT Eclipse Paho
     implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
     implementation("org.eclipse.paho:org.eclipse.paho.android.service:1.1.1")
+    // Azure Speech SDK
+    implementation("com.microsoft.cognitiveservices.speech:client-sdk:1.43.0@aar") { isTransitive = true }
 
 }

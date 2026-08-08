@@ -38,6 +38,7 @@ class ProductListUserActivity : AppCompatActivity() {
     private val inactivityNavigator by lazy { RobotInactivityNavigator(this) }
     private val navigationFailureListener: () -> Unit = { closeVideoOverlay() }
     private var screenEnteredAtMs = 0L
+    private var requestedRobotLocation: String? = null
     private val catalogErrorHandler = Handler(Looper.getMainLooper())
     private val stationaryScreenHandler = Handler(Looper.getMainLooper())
     private var useStationaryScreenTimeout = false
@@ -63,6 +64,8 @@ class ProductListUserActivity : AppCompatActivity() {
             finish()
             return
         }
+        requestedRobotLocation = request.robotLocation
+        LocationEventManager.clear()
         useStationaryScreenTimeout =
             !request.showTravelVideo && robotRepository.isAtCenterSala()
 
@@ -192,7 +195,9 @@ class ProductListUserActivity : AppCompatActivity() {
 
     private fun observeRobotArrival() {
         LocationEventManager.locationArrived.observe(this) { location ->
-            if (location != null) closeVideoOverlay()
+            if (location.equals(requestedRobotLocation, ignoreCase = true)) {
+                closeVideoOverlay()
+            }
         }
     }
 

@@ -4,9 +4,8 @@ package com.example.comfyapp.robot
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import com.example.comfyapp.agent.AgentSpeechController
 import com.example.comfyapp.core.TemiController
-import com.robotemi.sdk.Robot
-import com.robotemi.sdk.TtsRequest
 import java.util.concurrent.CopyOnWriteArraySet
 
 object TemiSessionManager {
@@ -14,6 +13,7 @@ object TemiSessionManager {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val returnListeners = CopyOnWriteArraySet<() -> Unit>()
     private val navigationFailureListeners = CopyOnWriteArraySet<() -> Unit>()
+    private val navigationStateListeners = CopyOnWriteArraySet<(Boolean) -> Unit>()
     private var controller: TemiController? = null
 
     @Synchronized
@@ -23,7 +23,8 @@ object TemiSessionManager {
                 context = context.applicationContext,
                 onStatus = onStatus,
                 onReturnedByInactivity = ::notifyReturnedByInactivity,
-                onNavigationFailed = ::notifyNavigationFailed
+                onNavigationFailed = ::notifyNavigationFailed,
+                onNavigationStateChanged = ::notifyNavigationStateChanged
             )
         }
         controller?.start()
@@ -45,8 +46,10 @@ object TemiSessionManager {
 
     fun isAtCenterSala(): Boolean = controller?.isAtCenterSala() == true
 
+    fun isNavigationInProgress(): Boolean = controller?.isNavigationInProgress() == true
+
     fun speak(message: String) {
-        Robot.getInstance().speak(TtsRequest.create(message, false))
+        AgentSpeechController.shared.speak(message)
     }
 
     fun addReturnListener(listener: () -> Unit) {
@@ -65,6 +68,14 @@ object TemiSessionManager {
         navigationFailureListeners -= listener
     }
 
+    fun addNavigationStateListener(listener: (Boolean) -> Unit) {
+        navigationStateListeners += listener
+    }
+
+    fun removeNavigationStateListener(listener: (Boolean) -> Unit) {
+        navigationStateListeners -= listener
+    }
+
     private fun notifyReturnedByInactivity() {
         mainHandler.post {
             returnListeners.forEach { it.invoke() }
@@ -74,6 +85,17 @@ object TemiSessionManager {
     private fun notifyNavigationFailed() {
         mainHandler.post {
             navigationFailureListeners.forEach { it.invoke() }
+        }
+    }
+
+    private fun notifyNavigationStateChanged(isNavigating: Boolean) {
+        val notifyListeners = {
+            navigationStateListeners.forEach { it.invoke(isNavigating) }
+        }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            notifyListeners()
+        } else {
+            mainHandler.post(notifyListeners)
         }
     }
 }

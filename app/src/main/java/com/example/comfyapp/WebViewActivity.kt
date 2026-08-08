@@ -11,11 +11,8 @@ import com.example.comfyapp.databinding.ActivityWebviewBinding
 import com.example.comfyapp.robot.TemiRobotRepository
 import com.example.comfyapp.ui.RobotInactivityNavigator
 import com.example.comfyapp.ui.products.category.ProductsUserActivity
-import com.robotemi.sdk.Robot
-import com.robotemi.sdk.TtsRequest
 
 class WebViewActivity : AppCompatActivity() {
-    private lateinit var robot: Robot
     private var promoId: Int = -1
     private val robotRepository by lazy { TemiRobotRepository(applicationContext) }
     private val inactivityNavigator by lazy { RobotInactivityNavigator(this) }
@@ -64,8 +61,6 @@ class WebViewActivity : AppCompatActivity() {
     }
     override fun onResume(){
         super.onResume()
-        robot = Robot.getInstance()
-
         val message = when (promoId) {
             202 -> "¡Descubre nuestras promociones en Lavamanos! Explora los descuentos disponibles y encuentra el producto ideal para ti."
             201 -> "¡Descubre nuestras promociones en Revestimientos! Explora los descuentos disponibles y encuentra el producto ideal para ti."
@@ -73,7 +68,7 @@ class WebViewActivity : AppCompatActivity() {
             else -> "¡Excelente!, Aquí puedes conocer todos los detalles del producto y explorar sus características!"
         }
 
-        robot.speak(TtsRequest.create(message, false))
+        robotRepository.speak(message)
     }
 
     override fun onStart() {

@@ -27,6 +27,8 @@ class ProductsUserViewModel(
 
     fun stopRobot() = robotRepository.stop()
 
+    fun isRobotNavigating() = robotRepository.isNavigationInProgress()
+
     fun onAction(action: ProductsUserAction) {
         when (action) {
             ProductsUserAction.SelectFloorAndWall ->
@@ -45,7 +47,7 @@ class ProductsUserViewModel(
 
     private fun openProductList(request: ProductListRequest) {
         _effect.value = ProductsUserEffect.OpenProductList(
-            selectCategory(request, "¡Perfecto! Acompáñame.")
+            selectCategory(request)
         )
     }
 

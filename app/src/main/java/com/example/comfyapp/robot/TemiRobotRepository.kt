@@ -27,5 +27,7 @@ class TemiRobotRepository(
 
     override fun notifyUserInteraction() = TemiSessionManager.notifyUserInteraction()
 
+    override fun isNavigationInProgress() = TemiSessionManager.isNavigationInProgress()
+
     override fun isAtCenterSala() = TemiSessionManager.isAtCenterSala()
 }

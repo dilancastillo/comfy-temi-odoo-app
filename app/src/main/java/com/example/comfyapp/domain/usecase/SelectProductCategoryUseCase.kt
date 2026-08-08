@@ -7,9 +7,8 @@ import com.example.comfyapp.domain.repository.RobotRepository
 class SelectProductCategoryUseCase(
     private val robotRepository: RobotRepository
 ) {
-    operator fun invoke(request: ProductListRequest, speech: String): ProductListRequest {
+    operator fun invoke(request: ProductListRequest): ProductListRequest {
         val navigationStarted = robotRepository.goToLocation(request.robotLocation)
-        if (navigationStarted) robotRepository.speak(speech)
         return request.copy(showTravelVideo = navigationStarted)
     }
 }

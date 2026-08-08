@@ -1,6 +1,7 @@
 // comunica la llegada del robot a una ubicacion con las pantallas interesadas
 package com.example.comfyapp.core
 
+import android.os.Looper
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 
@@ -14,6 +15,10 @@ object LocationEventManager {
     }
 
     fun clear() {
-        _locationArrived.postValue(null)
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            _locationArrived.value = null
+        } else {
+            _locationArrived.postValue(null)
+        }
     }
 }

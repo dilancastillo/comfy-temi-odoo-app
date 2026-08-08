@@ -20,6 +20,8 @@ class TilesViewModel(
 
     fun startRobot() = robotRepository.start()
 
+    fun cancelNavigationByUser() = robotRepository.cancelNavigationByUser()
+
     fun announceScreen() {
         robotRepository.speak(
             "¡Súper! ¿Para dónde estás buscando estos productos? Toca la pantalla y acompáñame."
@@ -33,7 +35,7 @@ class TilesViewModel(
             is TilesAction.Select -> {
                 val request = requestFor(action.category)
                 _effect.value = TilesEffect.OpenProductList(
-                    selectCategory(request, "¡Excelente! Acompáñame.")
+                    selectCategory(request)
                 )
             }
             TilesAction.UserInteraction -> robotRepository.notifyUserInteraction()

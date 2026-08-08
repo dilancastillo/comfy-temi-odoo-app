@@ -16,6 +16,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://csspeechstorage.blob.core.windows.net/maven/") }
     }
 }
 

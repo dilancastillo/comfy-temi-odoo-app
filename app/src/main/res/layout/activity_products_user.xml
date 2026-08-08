@@ -217,4 +217,58 @@
         app:layout_constraintVertical_bias="0.5"
         android:layout_marginEnd="24dp"/>
 
+    <!-- Overlay oscuro: cubre toda la pantalla mientras el agente pregunta/escucha -->
+    <View
+        android:id="@+id/overlayDark"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#B3000000"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Contenedor de textos del agente: pregunta + estado, centrados sobre el overlay -->
+    <LinearLayout
+        android:id="@+id/agentOverlayTexts"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Pregunta que hace el agente -->
+        <TextView
+            android:id="@+id/tvAgentQuestion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="42sp"
+            android:textStyle="bold"
+            android:lineSpacingExtra="6dp" />
+
+        <!-- Texto de estado ("Te escucho...") -->
+        <TextView
+            android:id="@+id/tvAgentStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Te escucho..."
+            android:textColor="#FFD54F"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
