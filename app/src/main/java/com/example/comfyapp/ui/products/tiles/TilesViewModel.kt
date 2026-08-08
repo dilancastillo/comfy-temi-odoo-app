@@ -62,7 +62,7 @@ class TilesViewModel(
         )
         TileCategory.SOCIAL_AREAS -> ProductListRequest(
             category = ProductCategory.FLOOR_AND_WALL_SOCIAL,
-            title = "Pisos y Paredes para Zonas Sociales",
+            title = "Porcelanatos y Ceramicas para Zonas Sociales",
             firstColumnTitle = "Únicamente para Paredes",
             secondColumnTitle = "Para Pisos y Paredes",
             robotLocation = "zona social revestimiento",
