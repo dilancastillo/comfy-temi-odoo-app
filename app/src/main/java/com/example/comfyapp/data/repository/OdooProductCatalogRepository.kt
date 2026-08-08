@@ -99,14 +99,14 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     onSuccess = firstSuccess,
                     onError = ::handleError,
                     offset = offset,
-                    limit = 5,
+                    limit = request.pageSize,
                     order = request.firstColumnOrder
                 )
                 ProductRepository.getExteriorsFloorAndWall(
                     onSuccess = secondSuccess,
                     onError = ::handleError,
                     offset = offset,
-                    limit = 6,
+                    limit = request.pageSize,
                     order = request.secondColumnOrder
                 )
             }

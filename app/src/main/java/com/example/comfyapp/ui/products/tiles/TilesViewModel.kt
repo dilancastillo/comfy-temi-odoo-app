@@ -51,12 +51,12 @@ class TilesViewModel(
         TileCategory.BATHROOMS -> ProductListRequest(
             category = ProductCategory.FLOOR_AND_WALL_BATHROOMS,
             title = "Pisos y paredes para Baños y Cocinas",
-            firstColumnTitle = "Únicamente para Paredes",
-            secondColumnTitle = "Para Pisos y Paredes",
+            firstColumnTitle = "Porcelanatos",
+            secondColumnTitle = "Ceramica",
             robotLocation = "baños revestimientos alfa",
             video = ProductVideo.FLOOR_AND_WALL,
-            pageSize = 8,
-            maxProductsPerColumn = 10,
+            pageSize = 15,
+            maxProductsPerColumn = 15,
             firstColumnOrder = "id desc",
             secondColumnOrder = "id desc"
         )
@@ -71,6 +71,9 @@ class TilesViewModel(
             maxProductsPerColumn = 10,
             firstColumnOrder = "id asc",
             secondColumnOrder = "id desc"
+        ).copy(
+            firstColumnTitle = "Porcelanatos",
+            secondColumnTitle = "Ceramica"
         )
         TileCategory.EXTERIORS -> ProductListRequest(
             category = ProductCategory.FLOOR_AND_WALL_EXTERIORS,
@@ -79,8 +82,8 @@ class TilesViewModel(
             secondColumnTitle = "Para Pisos y Paredes",
             robotLocation = "pisos exteriores alfa",
             video = ProductVideo.FLOOR_AND_WALL,
-            pageSize = 6,
-            maxProductsPerColumn = 6,
+            pageSize = 15,
+            maxProductsPerColumn = 15,
             firstColumnOrder = "id desc",
             secondColumnOrder = "id asc"
         )

@@ -55,6 +55,7 @@ object ProductRepository {
             fields = fieldsStock,
             order = "name asc",
             limit = 10,
+            context = mapOf("location" to TUNJA_E_LOCATION_ID),
             onSuccess = { resultStock ->
                 if (resultStock.isEmpty()) {
                     onSuccess(emptyList())
@@ -84,6 +85,7 @@ object ProductRepository {
                     fields = fieldsTemplate,
                     order = "id asc",
                     limit = 10,
+                    context = mapOf("location" to TUNJA_E_LOCATION_ID),
                     onSuccess = { resultTemplate ->
                         Log.d("TEMPLATE_COUNT", "Templates: ${resultTemplate.size()}")
                         // map de template_id a website_url
@@ -580,7 +582,7 @@ object ProductRepository {
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
         offset: Int = 0,
-        limit: Int = 8,
+        limit: Int = 15,
         order: String = "id desc"
     ) {
         val cacheKey = "baths_wall_${offset}_${limit}_$order"
@@ -591,7 +593,7 @@ object ProductRepository {
             "|",
             listOf("x_studio_format_related", "ilike", "30x60"),
             listOf("x_studio_format_related", "ilike", "30x45"),
-            listOf("tech_traffic", "ilike", "Pared"),
+            listOf("tech_traffic", "=", "Pared"),
             listOf("free_qty", ">", 10),
             listOf("website_published", "!=", false)
         )
@@ -604,7 +606,7 @@ object ProductRepository {
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
         offset: Int = 0,
-        limit: Int = 8,
+        limit: Int = 15,
         order: String = "id desc"
     ) {
         val cacheKey = "baths_floor_${offset}_${limit}_$order"
@@ -638,8 +640,9 @@ object ProductRepository {
         cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
 
         val domain = listOf(
-            listOf("categ_id", "in", listOf(380)),
-            listOf("tech_traffic", "!=", "Pared"),
+            "&",
+            "&",
+            listOf("categ_id", "in", listOf(375)),
             listOf("free_qty", ">", 10),
             listOf("website_published", "!=", false)
         )
@@ -660,6 +663,9 @@ object ProductRepository {
         cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
 
         val domain = listOf(
+            "&",
+            "&",
+            "&",
             listOf("categ_id", "in", listOf(380)),
             listOf("tech_traffic", "!=", "Pared"),
             listOf("free_qty", ">", 10),
@@ -670,13 +676,13 @@ object ProductRepository {
 
     // -------------------------------------------------------
     // EXTERIORES — Únicamente Paredes
-    // filtro: categ_id in 2437, traffic!=Pared, stock>10, published, desc, 5 productos, contexto 8
+    // filtro: categ_id in 2438, traffic=Pared, stock>10, published, desc, 15 productos, contexto 8
     // -------------------------------------------------------
     fun getExteriorsWall(
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
         offset: Int = 0,
-        limit: Int = 5,
+        limit: Int = 15,
         order: String = "id desc"
     ) {
         val cacheKey = "ext_wall_${offset}_${limit}_$order"
@@ -684,8 +690,11 @@ object ProductRepository {
         cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
 
         val domain = listOf(
-            listOf("categ_id", "in", listOf(2437)),
-            listOf("tech_traffic", "!=", "Pared"),
+            "&",
+            "&",
+            "&",
+            listOf("categ_id", "in", listOf(2438)),
+            listOf("tech_traffic", "=", "Pared"),
             listOf("free_qty", ">", 10),
             listOf("website_published", "!=", false)
         )
@@ -693,12 +702,12 @@ object ProductRepository {
     }
 
     // EXTERIORES — Pisos y Paredes
-    // filtro: categ_id in 2437, traffic!=Pared, stock>10, published, asc, 6 productos, contexto 8
+    // filtro: categ_id in 2437, traffic!=Pared, stock>10, published, asc, 15 productos, contexto 8
     fun getExteriorsFloorAndWall(
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
         offset: Int = 0,
-        limit: Int = 6,
+        limit: Int = 15,
         order: String = "id asc"
     ) {
         val cacheKey = "ext_floor_${offset}_${limit}_$order"
@@ -706,6 +715,9 @@ object ProductRepository {
         cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
 
         val domain = listOf(
+            "&",
+            "&",
+            "&",
             listOf("categ_id", "in", listOf(2437)),
             listOf("tech_traffic", "!=", "Pared"),
             listOf("free_qty", ">", 10),
