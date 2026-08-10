@@ -3,7 +3,7 @@ package com.example.comfyapp.agent
 
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
+import com.example.comfyapp.logging.PersistentLog as Log
 import com.example.comfyapp.BuildConfig
 import com.microsoft.cognitiveservices.speech.CancellationDetails
 import com.microsoft.cognitiveservices.speech.ResultReason

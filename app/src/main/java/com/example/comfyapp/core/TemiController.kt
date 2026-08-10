@@ -4,7 +4,7 @@ package com.example.comfyapp.core
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
+import com.example.comfyapp.logging.PersistentLog as Log
 import android.widget.Toast
 import com.example.comfyapp.agent.AgentSpeechController
 import com.robotemi.sdk.Robot

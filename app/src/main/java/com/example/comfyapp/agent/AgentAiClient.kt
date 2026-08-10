@@ -3,7 +3,7 @@ package com.example.comfyapp.agent
 
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
+import com.example.comfyapp.logging.PersistentLog as Log
 import com.example.comfyapp.BuildConfig
 import org.json.JSONArray
 import org.json.JSONObject
@@ -29,7 +29,7 @@ class AgentAiClient {
         }
 
         Thread {
-            val model = BuildConfig.GEMINI_MODEL.ifBlank { "gemini-2.5-flash" }
+            val model = BuildConfig.GEMINI_MODEL.ifBlank { "gemini-3.5-flash" }
             var tokenUsageLogged = false
             val result = runCatching {
                 val systemPrompt = """

@@ -6,7 +6,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import okhttp3.OkHttpClient
 import android.os.SystemClock
-import android.util.Log
+import com.example.comfyapp.logging.PersistentLog as Log
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response

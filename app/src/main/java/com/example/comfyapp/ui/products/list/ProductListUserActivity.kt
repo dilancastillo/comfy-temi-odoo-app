@@ -9,7 +9,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.util.Log
+import com.example.comfyapp.logging.PersistentLog as Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
