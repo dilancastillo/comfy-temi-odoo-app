@@ -37,6 +37,7 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
     private var agentAttempt = 0
     @Volatile private var agentRunning = false
     private var waitingToOpenProductList = false
+    private var preserveSharedSpeechOnStop = false
     private val navigationStateListener: (Boolean) -> Unit = { isNavigating ->
         if (isNavigating) {
             Log.i(TAG, "detection_mode_disabled reason=robot_navigating")
@@ -80,7 +81,9 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
     }
 
     override fun onStop() {
-        deactivateDetectionMode()
+        val preserveSharedSpeech = preserveSharedSpeechOnStop
+        preserveSharedSpeechOnStop = false
+        deactivateDetectionMode(stopSpeaking = !preserveSharedSpeech)
         TemiSessionManager.removeNavigationStateListener(navigationStateListener)
         inactivityNavigator.stop()
         viewModel.stopRobot()
@@ -247,10 +250,10 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
         Log.i(TAG, "detection_mode_on=true")
     }
 
-    private fun deactivateDetectionMode() {
+    private fun deactivateDetectionMode(stopSpeaking: Boolean = true) {
         agentRunning = false
         speechController.stopListening()
-        speechController.stopSpeaking()
+        if (stopSpeaking) speechController.stopSpeaking()
         ocultarOverlay()
         if (detectionListenerRegistered) {
             robot.removeOnDetectionStateChangedListener(this)
@@ -307,6 +310,7 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
         }
     }
     private fun abrirTiles(category: TileCategory) {
+        preserveSharedSpeechOnStop = true
         startActivity(
             Intent(this, TilesListActivity::class.java).apply {
                 putExtra(TilesListActivity.EXTRA_CATEGORY, category.name)

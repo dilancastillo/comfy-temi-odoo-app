@@ -30,10 +30,18 @@ class AgentSpeechController {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val speechGeneration = AtomicLong()
     private val listenGeneration = AtomicLong()
+    private val speechLock = Any()
 
     @Volatile private var destroyed = false
     @Volatile private var recognizer: SpeechRecognizer? = null
     @Volatile private var synthesizer: SpeechSynthesizer? = null
+    private var isSpeaking = false
+    private var queuedSpeech: QueuedSpeech? = null
+
+    private data class QueuedSpeech(
+        val text: String,
+        val onComplete: () -> Unit
+    )
 
     val hasAzure: Boolean
         get() = BuildConfig.AZURE_SPEECH_KEY.isNotBlank()
@@ -46,10 +54,11 @@ class AgentSpeechController {
             if (isCurrentSpeech(requestId)) onComplete()
             return
         }
+        synchronized(speechLock) { isSpeaking = true }
         trace("AGENTE: $text")
         if (!hasAzure) {
             robot.speak(TtsRequest.create(text, false))
-            mainHandler.postDelayed({ if (isCurrentSpeech(requestId)) onComplete() }, 3_000)
+            mainHandler.postDelayed({ completeSpeech(requestId, onComplete) }, 3_000)
             return
         }
         executor.execute {
@@ -75,15 +84,27 @@ class AgentSpeechController {
                 mainHandler.post {
                     if (isCurrentSpeech(requestId)) {
                         robot.speak(TtsRequest.create(text, false))
-                        mainHandler.postDelayed({ if (isCurrentSpeech(requestId)) onComplete() }, 3_000)
+                        mainHandler.postDelayed({ completeSpeech(requestId, onComplete) }, 3_000)
                     }
                 }
                 return@execute
             } finally {
                 if (synthesizer === currentSynthesizer) synthesizer = null
             }
-            mainHandler.post { if (isCurrentSpeech(requestId)) onComplete() }
+            mainHandler.post { completeSpeech(requestId, onComplete) }
         }
+    }
+
+    fun speakAfterCurrent(text: String, onComplete: () -> Unit = {}) {
+        val shouldSpeakNow = synchronized(speechLock) {
+            if (isSpeaking) {
+                queuedSpeech = QueuedSpeech(text, onComplete)
+                false
+            } else {
+                true
+            }
+        }
+        if (shouldSpeakNow) speak(text, onComplete)
     }
 
     fun listen(timeoutSeconds: Int = 7, callback: (ListenResult) -> Unit) {
@@ -141,9 +162,24 @@ class AgentSpeechController {
 
     fun stopSpeaking() {
         speechGeneration.incrementAndGet()
+        synchronized(speechLock) {
+            isSpeaking = false
+            queuedSpeech = null
+        }
         try { synthesizer?.StopSpeakingAsync() } catch (_: Exception) { }
         synthesizer = null
         robot.cancelAllTtsRequests()
+    }
+
+    private fun completeSpeech(requestId: Long, onComplete: () -> Unit) {
+        if (!isCurrentSpeech(requestId)) return
+        val nextSpeech = synchronized(speechLock) {
+            if (!isCurrentSpeech(requestId)) return
+            isSpeaking = false
+            queuedSpeech.also { queuedSpeech = null }
+        }
+        onComplete()
+        nextSpeech?.let { speak(it.text, it.onComplete) }
     }
 
     fun destroy() {

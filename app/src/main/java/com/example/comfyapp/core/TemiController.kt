@@ -145,8 +145,6 @@ class TemiController(
             navigationStartedByUser = false
             returningToCenter = false
             activeTarget = null
-            stopSpeaking()
-
             LocationEventManager.notifyLocationArrived(location)
             last_location = location
             onArrived?.invoke()
@@ -155,7 +153,7 @@ class TemiController(
 
             // Solo habla si NO es Home Base ni Centro Sala
             if (!isHomeBase && !isCentroSala) {
-                speak("Aquí puedes ver las últimas tendencias para la zona que seleccionaste. Además, puedes ver sus especificaciones haciendo clic sobre cada producto.")
+                speakAfterCurrent("Aquí puedes ver las últimas tendencias para la zona que seleccionaste. Además, puedes ver sus especificaciones haciendo clic sobre cada producto.")
             }
 
             if (location.equals("centro sala", ignoreCase = true)) {
@@ -284,6 +282,10 @@ class TemiController(
 
     private fun speak(message: String) {
         AgentSpeechController.shared.speak(message)
+    }
+
+    private fun speakAfterCurrent(message: String) {
+        AgentSpeechController.shared.speakAfterCurrent(message)
     }
 
     private fun stopSpeaking() {
