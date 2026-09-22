@@ -60,21 +60,25 @@ object PersistentLog {
         }
 
         if (shouldPersist(tag)) {
+            val timestamp = formatTimestamp()
+            val level = priorityName(priority)
+            val fullMessage = if (throwable == null) {
+                message
+            } else {
+                "$message\n${android.util.Log.getStackTraceString(throwable)}"
+            }
             val line = buildString {
-                append(formatTimestamp())
+                append(timestamp)
                 append(' ')
-                append(priorityName(priority))
+                append(level)
                 append(' ')
                 append(tag)
                 append("  ")
-                append(message)
-                if (throwable != null) {
-                    append('\n')
-                    append(android.util.Log.getStackTraceString(throwable))
-                }
+                append(fullMessage)
                 append('\n')
             }
             writer.execute { appendToDailyFile(line) }
+            SheetLogUploader.send(timestamp, level, tag, fullMessage)
         }
         return result
     }

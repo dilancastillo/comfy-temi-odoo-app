@@ -1,11 +1,13 @@
 // adapta las consultas heredadas de odoo al contrato del catalogo de productos
 package com.example.comfyapp.data.repository
 
+import com.example.comfyapp.OdooHelper
 import com.example.comfyapp.data.model.ModelProductStock
 import com.example.comfyapp.domain.model.CatalogProduct
 import com.example.comfyapp.domain.model.ProductCategory
 import com.example.comfyapp.domain.model.ProductListRequest
 import com.example.comfyapp.domain.repository.ProductCatalogRepository
+import com.example.comfyapp.logging.PersistentLog as Log
 
 class OdooProductCatalogRepository : ProductCatalogRepository {
 
@@ -30,6 +32,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
         fun handleError(message: String) {
             if (!failed) {
                 failed = true
+                Log.e(OdooHelper.ODOO_TIMING_TAG, "odoo_catalog_error category=${request.category} $message")
                 onError(message)
             }
         }

@@ -10,7 +10,6 @@ import com.example.comfyapp.agent.AgentSpeechController
 import com.robotemi.sdk.Robot
 import com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener
 import com.robotemi.sdk.listeners.OnRobotReadyListener
-import com.robotemi.sdk.navigation.model.SpeedLevel
 //import kotlinx.coroutines.Runnable
 
 
@@ -47,7 +46,7 @@ class TemiController(
 
     companion object {
         private const val TAG = "TemiController"
-        private const val INACTIVITY_TIMEOUT = 1 * 60 * 1000L
+        private const val INACTIVITY_TIMEOUT = 40 * 1000L
     }
 
     fun start() {
@@ -102,9 +101,9 @@ class TemiController(
 
         try {
             if(target.contains("promosemana1")||target.contains("promosemana")) {
-                robot.goTo(target,false,false, SpeedLevel.MEDIUM,true, true)
+                robot.goTo(target, false, false, null, true, true)
             } else {
-                robot.goTo(target,true,false, SpeedLevel.MEDIUM,false, false)
+                robot.goTo(target, true, false, null, false, false)
             }
         } catch (error: Exception) {
             Log.e(TAG, "No se pudo iniciar la navegación", error)
@@ -259,7 +258,6 @@ class TemiController(
         ejecutarSequence(sequenceName)
     }
     fun notifyUserInteraction() {
-        Log.w(TAG, "notifyUserInteraction()")
         abortExpectedFromUser = true
         navigationStartedByUser = true
         hourlyRunnable?.let {

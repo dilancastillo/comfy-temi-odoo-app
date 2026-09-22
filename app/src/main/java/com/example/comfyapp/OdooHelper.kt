@@ -98,18 +98,17 @@ object OdooHelper {
 
         odooApi.call(request).enqueue(object : Callback<JsonObject> {
             override fun onResponse(call: Call<JsonObject>, response: Response<JsonObject>) {
+                val result = response.body()?.get("result")
+                val resultCount = result?.takeIf { it.isJsonArray }?.asJsonArray?.size()
                 Log.i(
                     ODOO_TIMING_TAG,
                     "odoo_request_finished id=$requestId model=$model " +
                         "durationMs=${SystemClock.elapsedRealtime() - requestStartedAt} " +
-                        "httpCode=${response.code()} hasResult=${response.body()?.has("result") == true}"
+                        "httpCode=${response.code()} hasResult=${result != null} " +
+                        "resultCount=${resultCount ?: "n/a"}"
                 )
 
-                // 👇 LOG COMPLETO
-                android.util.Log.e("ODDO-DEBUG", "Raw response: ${response.body()}")
-
                 if (response.isSuccessful) {
-                    val result = response.body()?.get("result")
                     if (result != null) {
                         if (result.isJsonArray) {
                             onSuccess(result.asJsonArray)
@@ -136,5 +135,5 @@ object OdooHelper {
         })
     }
 
-    private const val ODOO_TIMING_TAG = "OdooTiming"
+    const val ODOO_TIMING_TAG = "OdooTiming"
 }

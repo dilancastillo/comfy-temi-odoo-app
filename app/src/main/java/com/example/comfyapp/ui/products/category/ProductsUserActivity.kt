@@ -38,6 +38,7 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
     @Volatile private var agentRunning = false
     private var waitingToOpenProductList = false
     private var preserveSharedSpeechOnStop = false
+    private var listeningCountdownRunnable: Runnable? = null
     private val navigationStateListener: (Boolean) -> Unit = { isNavigating ->
         if (isNavigating) {
             Log.i(TAG, "detection_mode_disabled reason=robot_navigating")
@@ -52,13 +53,15 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
         private const val TAG = "ProductsUserActivity"
         private const val DETECTION_DISTANCE_METERS = 1.5f
         private const val AGENT_GREETING_DELAY_MS = 500L
-        private const val LISTEN_TIMEOUT_SECONDS = 7
+        private const val LISTEN_TIMEOUT_SECONDS = 10
         private const val MAX_AGENT_ATTEMPTS = 2
         private const val LISTENING_TEXT = "Te escucho..."
+        private const val THINKING_TEXT = "Pensando..."
         private const val RETRY_QUESTION_TEXT =
             "No te entendí bien. ¿Qué estás buscando: sanitarios, griferías o pisos y paredes?"
         private const val AGENT_QUESTION_TEXT =
-            "¡Hola! ¿Qué estás buscando?\n¿Sanitarios, griferías o pisos y paredes?"
+            "Hola, bienvenido. Estoy aquí para ayudarte mientras mi compañera Liliana está disponible. " +
+                "¿Qué estás buscando? ¿Sanitarios, griferías o pisos y paredes?"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,8 +79,6 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
         // Activar Detection Mode cuando el robot esté listo
         bindActions()
         observeEffects()
-
-        if (savedInstanceState == null) viewModel.announceScreen()
     }
 
     override fun onStop() {
@@ -121,12 +122,16 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
         if (agentRunning) return
         agentRunning = true
         agentAttempt = 1
+        aiClient.reset()
+        // Detectar a alguien y empezar a hablarle cuenta como interacción real: reinicia el
+        // temporizador de inactividad para que no se dispare "volver a Centro Sala" a mitad
+        // de la conversación de voz.
+        viewModel.onAction(ProductsUserAction.UserInteraction)
         Log.i(TAG, "agent_flow_started")
         robot.tiltAngle(50, 1f)
 
         mostrarOverlay()
 
-        // Esperar a que el TTS del announceScreen termine antes de hablar
         binding.root.postDelayed({
             if (!agentRunning) return@postDelayed
             Log.i(TAG, "agent_question_started")
@@ -140,6 +145,7 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
                     when (result) {
                         is AgentSpeechController.ListenResult.Text -> {
                             Log.i(TAG, "usuario dijo: ${result.value}")
+                            mostrarPensando()
                             aiClient.resolver(result.value) { decision ->
                                 agentRunning = false
                                 ocultarOverlay()
@@ -167,34 +173,38 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
 
     private fun handleAgentDecision(decision: AgentAiClient.Decision) {
         if (decision.screenId.isBlank()) {
-            retryAgentQuestion()
+            // Gemini ya entendió la petición y armó una respuesta (declina, pide aclarar,
+            // o pide repetir) — se dice tal cual en vez de una pregunta genérica fija.
+            retryAgentQuestion(decision.mensaje)
             return
         }
         navegarSegunDecision(decision)
     }
 
-    private fun retryAgentQuestion() {
+    private fun retryAgentQuestion(agentMessage: String = "") {
         if (agentAttempt >= MAX_AGENT_ATTEMPTS) {
             agentRunning = false
             ocultarOverlay()
             speechController.speak(
-                "No logré entenderte. Puedes tocar una categoría en mi pantalla."
+                agentMessage.ifBlank { "No logré entenderte. Puedes tocar una categoría en mi pantalla." }
             )
             return
         }
 
+        val questionToAsk = agentMessage.ifBlank { RETRY_QUESTION_TEXT }
         agentAttempt += 1
         agentRunning = true
         mostrarOverlay()
-        mostrarPregunta(RETRY_QUESTION_TEXT)
+        mostrarPregunta(questionToAsk)
         Log.i(TAG, "agent_question_retry attempt=$agentAttempt")
-        speechController.speak(RETRY_QUESTION_TEXT) {
+        speechController.speak(questionToAsk) {
             if (agentRunning) {
                 mostrarEscuchando()
                 speechController.listen(LISTEN_TIMEOUT_SECONDS) { result ->
                     when (result) {
                         is AgentSpeechController.ListenResult.Text -> {
                             Log.i(TAG, "usuario dijo retry: ${result.value}")
+                            mostrarPensando()
                             aiClient.resolver(result.value) { decision ->
                                 agentRunning = false
                                 ocultarOverlay()
@@ -228,11 +238,41 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
     }
 
     private fun mostrarEscuchando() = with(binding) {
-        tvAgentStatus.text = LISTENING_TEXT
+        tvAgentStatus.visibility = View.VISIBLE
+        startListeningCountdown()
+    }
+
+    private fun mostrarPensando() = with(binding) {
+        stopListeningCountdown()
+        tvAgentStatus.text = THINKING_TEXT
         tvAgentStatus.visibility = View.VISIBLE
     }
 
+    private fun startListeningCountdown() {
+        stopListeningCountdown()
+        var secondsLeft = LISTEN_TIMEOUT_SECONDS
+        binding.tvAgentStatus.text = "$LISTENING_TEXT $secondsLeft"
+        val runnable = object : Runnable {
+            override fun run() {
+                secondsLeft--
+                if (secondsLeft < 0) return
+                binding.tvAgentStatus.text = "$LISTENING_TEXT $secondsLeft"
+                if (secondsLeft > 0) {
+                    binding.root.postDelayed(this, 1_000L)
+                }
+            }
+        }
+        listeningCountdownRunnable = runnable
+        binding.root.postDelayed(runnable, 1_000L)
+    }
+
+    private fun stopListeningCountdown() {
+        listeningCountdownRunnable?.let { binding.root.removeCallbacks(it) }
+        listeningCountdownRunnable = null
+    }
+
     private fun ocultarOverlay() = with(binding) {
+        stopListeningCountdown()
         overlayDark.visibility = View.GONE
         agentOverlayTexts.visibility = View.GONE
         tvAgentStatus.visibility = View.GONE
@@ -270,7 +310,19 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
             "baños" -> abrirTiles(TileCategory.BATHROOMS)
             "zona_social" -> abrirTiles(TileCategory.SOCIAL_AREAS)
             "exteriores" -> abrirTiles(TileCategory.EXTERIORS)
-            "pisos_y_paredes" -> startActivity(Intent(this, TilesListActivity::class.java))
+            "pisos_y_paredes" -> {
+                val openScreen = { startActivity(Intent(this, TilesListActivity::class.java)) }
+                if (decision.mensaje.isNotBlank()) {
+                    // Se espera a que termine de decir la aclaración antes de abrir la
+                    // siguiente pantalla — TilesListActivity dice su propio saludo apenas
+                    // arranca, y como speak() cancela lo que esté sonando, si se navega de
+                    // inmediato esa aclaración se corta a mitad de frase.
+                    preserveSharedSpeechOnStop = true
+                    speechController.speak(decision.mensaje) { openScreen() }
+                } else {
+                    openScreen()
+                }
+            }
             "sanitarios" -> {
                 val request = ProductListRequest(
                     category = ProductCategory.SANITARY,

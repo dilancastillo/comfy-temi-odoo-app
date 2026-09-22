@@ -39,6 +39,8 @@ android {
         buildConfigField("String", "AZURE_SPEECH_VOICE",  "\"${localProps.getProperty("AZURE_SPEECH_VOICE", "")}\"")
         buildConfigField("String", "GEMINI_API_KEY",      "\"${localProps.getProperty("GEMINI_API_KEY", "")}\"")
         buildConfigField("String", "GEMINI_MODEL",        "\"${localProps.getProperty("GEMINI_MODEL", "")}\"")
+        buildConfigField("String", "GEMINI_MODEL_FALLBACK", "\"${localProps.getProperty("GEMINI_MODEL_FALLBACK", "")}\"")
+        buildConfigField("String", "SHEETS_LOG_URL",      "\"${localProps.getProperty("SHEETS_LOG_URL", "")}\"")
 
     }
 

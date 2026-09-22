@@ -362,12 +362,9 @@ object ProductRepository {
         }
 
         val domain = listOf(
-            listOf("parent_category", "ilike", "GRIFERIAS"),
-            listOf("child_category", "ilike", "LAVAMANOS"),
-            listOf("website_published", "=", true),
-            listOf("free_qty", ">", 1),
-            listOf("stock_quant_ids.location_id", "ilike", locationName),
-            listOf("stock_quant_ids.location_id.location_id.usage", "=", "internal")
+            listOf("categ_id", "ilike", "GRIFERIAS / LAVAMANOS"),
+            listOf("stock_quant_ids.location_id", "ilike", "R/Exh/Existencias"),
+            listOf("stock_quant_ids.quantity", ">", 0)
         )
 
         val fields = listOf(
@@ -440,12 +437,9 @@ object ProductRepository {
         }
 
         val domain = listOf(
-            listOf("parent_category", "ilike", "GRIFERIAS"),
-            listOf("child_category", "ilike", "LAVAPLATOS"),
-            listOf("website_published", "=", true),
-            listOf("free_qty", ">", 1),
-            listOf("stock_quant_ids.location_id", "ilike", locationName),
-            listOf("stock_quant_ids.location_id.location_id.usage", "=", "internal")
+            listOf("categ_id", "ilike", "GRIFERIAS / LAVAPLATOS"),
+            listOf("stock_quant_ids.location_id", "ilike", "R/Exh/Existencias"),
+            listOf("stock_quant_ids.quantity", ">", 0)
         )
 
         val fields = listOf(

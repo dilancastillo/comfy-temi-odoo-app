@@ -23,8 +23,6 @@ class ProductsUserViewModel(
 
     fun startRobot() = robotRepository.start()
 
-    fun announceScreen() = robotRepository.speak(WELCOME_MESSAGE)
-
     fun stopRobot() = robotRepository.stop()
 
     fun isRobotNavigating() = robotRepository.isNavigationInProgress()
@@ -52,11 +50,6 @@ class ProductsUserViewModel(
     }
 
     companion object {
-        private const val WELCOME_MESSAGE =
-            "¡Bienvenido! ¿Qué tipo de producto estás buscando? " +
-                "Pisos y paredes, sanitarios o griferías. Toca en mi pantalla y te mostraré " +
-                "las últimas tendencias de esta categoría."
-
         private val SANITARY_REQUEST = ProductListRequest(
             category = ProductCategory.SANITARY,
             title = "Sanitarios y Accesorios",
