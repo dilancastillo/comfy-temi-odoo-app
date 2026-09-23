@@ -12,8 +12,6 @@ import kotlin.collections.listOf
 
 object ProductRepository {
 
-    private const val TUNJA_E_LOCATION_ID = 8
-
     /**
      * Trae productos con stock > 0 en una ubicación específica y usados en cierta categoría.
      * Luego agrega la URL de la plantilla (product.template) correspondiente.
@@ -55,7 +53,6 @@ object ProductRepository {
             fields = fieldsStock,
             order = "name asc",
             limit = 10,
-            context = mapOf("location" to TUNJA_E_LOCATION_ID),
             onSuccess = { resultStock ->
                 if (resultStock.isEmpty()) {
                     onSuccess(emptyList())
@@ -85,8 +82,7 @@ object ProductRepository {
                     fields = fieldsTemplate,
                     order = "id asc",
                     limit = 10,
-                    context = mapOf("location" to TUNJA_E_LOCATION_ID),
-                    onSuccess = { resultTemplate ->
+                            onSuccess = { resultTemplate ->
                         Log.d("TEMPLATE_COUNT", "Templates: ${resultTemplate.size()}")
                         // map de template_id a website_url
                         val templateMap = resultTemplate.mapNotNull {
@@ -383,7 +379,6 @@ object ProductRepository {
             limit = limit,
             offset = offset,
             order = "id desc",
-            context = mapOf("location" to TUNJA_E_LOCATION_ID),
             onSuccess = { result ->
                 val products = result.mapNotNull {
                     try {
@@ -458,7 +453,6 @@ object ProductRepository {
             limit = limit,
             offset = offset,
             order = "id desc",
-            context = mapOf("location" to TUNJA_E_LOCATION_ID), // id 8 = Tunja/E, Odoo suma automáticamente todos los hijos
             onSuccess = { result ->
                 val products = result.mapNotNull {
                     try {
@@ -516,8 +510,7 @@ object ProductRepository {
             listOf("child_category", "ilike", "COMBOS"),
             listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
-            listOf("stock_quant_ids.location_id", "ilike", locationName),
-            listOf("stock_quant_ids.location_id.location_id.usage", "=", "internal")
+            listOf("stock_quant_ids.location_id", "ilike", "R/Exh/Existencias")
         )
 
         val fields = listOf(
@@ -536,7 +529,6 @@ object ProductRepository {
             limit = limit,
             offset = offset,
             order = "id desc",
-            context = mapOf("location" to TUNJA_E_LOCATION_ID),
             onSuccess = { result ->
                 val products = result.mapNotNull {
                     try {
@@ -734,15 +726,19 @@ object ProductRepository {
         onError: (String) -> Unit
     ) {
         val fields = listOf("id", "name", "free_qty", "website_url", "list_price")
+        // Filtro directo por ubicación de exhibición, igual al usado en griferías —
+        // se suma al contexto de location (que sigue ahí para que free_qty refleje
+        // el stock de esa sede específica).
+        val domainWithLocation = domain +
+            listOf(listOf("stock_quant_ids.location_id", "ilike", "R/Exh/Existencias"))
         OdooHelper.executeOdooRpc(
             model = "product.product",
             method = "search_read",
-            domain = domain,
+            domain = domainWithLocation,
             fields = fields,
             limit = limit,
             offset = offset,
             order = order, // Odoo ordena por id asc/desc según la columna
-            context = mapOf("location" to TUNJA_E_LOCATION_ID),
             onSuccess = { result ->
                 val products = result.mapNotNull {
                     try {
@@ -792,8 +788,7 @@ object ProductRepository {
             listOf("grandchild_category", "ilike", "ONE PIECE"),
             listOf("website_published", "=", true),
             listOf("free_qty", ">", 1),
-            listOf("stock_quant_ids.location_id", "ilike", locationName),
-            listOf("stock_quant_ids.location_id.location_id.usage", "=", "internal")
+            listOf("stock_quant_ids.location_id", "ilike", "R/Exh/Existencias")
         )
 
         val fields = listOf(
@@ -812,7 +807,6 @@ object ProductRepository {
             limit = limit,
             offset = offset,
             order = "id desc",
-            context = mapOf("location" to TUNJA_E_LOCATION_ID),
             onSuccess = { result ->
                 val products = result.mapNotNull {
                     try {

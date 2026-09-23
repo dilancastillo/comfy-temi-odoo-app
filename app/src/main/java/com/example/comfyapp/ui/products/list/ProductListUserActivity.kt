@@ -143,6 +143,9 @@ class ProductListUserActivity : AppCompatActivity() {
             cancelCatalogErrorTimeout()
             openCategories("back_to_categories_button")
         }
+        binding.floatingMenu.btnHablar.setOnClickListener {
+            openCategories("btn_hablar")
+        }
     }
 
     private fun setupProductColumns() {

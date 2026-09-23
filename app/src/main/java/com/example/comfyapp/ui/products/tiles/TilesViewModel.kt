@@ -51,8 +51,8 @@ class TilesViewModel(
         TileCategory.BATHROOMS -> ProductListRequest(
             category = ProductCategory.FLOOR_AND_WALL_BATHROOMS,
             title = "Pisos y paredes para Baños y Cocinas",
-            firstColumnTitle = "Porcelanatos",
-            secondColumnTitle = "Ceramica",
+            firstColumnTitle = "Únicamente para Paredes",
+            secondColumnTitle = "Para Pisos y Paredes",
             robotLocation = "baños revestimientos alfa",
             video = ProductVideo.FLOOR_AND_WALL,
             pageSize = 15,
@@ -63,17 +63,14 @@ class TilesViewModel(
         TileCategory.SOCIAL_AREAS -> ProductListRequest(
             category = ProductCategory.FLOOR_AND_WALL_SOCIAL,
             title = "Porcelanatos y Ceramicas para Zonas Sociales",
-            firstColumnTitle = "Únicamente para Paredes",
-            secondColumnTitle = "Para Pisos y Paredes",
+            firstColumnTitle = "Porcelanatos",
+            secondColumnTitle = "Ceramica",
             robotLocation = "zona social revestimiento",
             video = ProductVideo.FLOOR_AND_WALL,
             pageSize = 10,
             maxProductsPerColumn = 10,
             firstColumnOrder = "id asc",
             secondColumnOrder = "id desc"
-        ).copy(
-            firstColumnTitle = "Porcelanatos",
-            secondColumnTitle = "Ceramica"
         )
         TileCategory.EXTERIORS -> ProductListRequest(
             category = ProductCategory.FLOOR_AND_WALL_EXTERIORS,

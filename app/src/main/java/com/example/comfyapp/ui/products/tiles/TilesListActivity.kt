@@ -93,6 +93,7 @@ class TilesListActivity : AppCompatActivity() {
         btnExterior.setOnClickListener {
             handleTileSelection(TileCategory.EXTERIORS)
         }
+        floatingMenu.btnHablar.setOnClickListener { openCategories() }
     }
 
     private fun observeEffects() {

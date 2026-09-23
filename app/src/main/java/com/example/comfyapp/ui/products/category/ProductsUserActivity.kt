@@ -397,6 +397,9 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
         imgbtnback.setOnClickListener {
             viewModel.onAction(ProductsUserAction.Back)
         }
+        floatingMenu.btnHablar.setOnClickListener {
+            if (!viewModel.isRobotNavigating()) iniciarFlujoAgente()
+        }
     }
 
     private fun observeEffects() {
