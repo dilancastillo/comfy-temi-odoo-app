@@ -41,6 +41,8 @@ android {
         buildConfigField("String", "GEMINI_MODEL",        "\"${localProps.getProperty("GEMINI_MODEL", "")}\"")
         buildConfigField("String", "GEMINI_MODEL_FALLBACK", "\"${localProps.getProperty("GEMINI_MODEL_FALLBACK", "")}\"")
         buildConfigField("String", "SHEETS_LOG_URL",      "\"${localProps.getProperty("SHEETS_LOG_URL", "")}\"")
+        // false = vuelve al flujo anterior del agente (Gemini escoge la pantalla directamente)
+        buildConfigField("boolean", "ASSISTANCE_ROUTER_V2", localProps.getProperty("ASSISTANCE_ROUTER_V2", "true"))
 
     }
 

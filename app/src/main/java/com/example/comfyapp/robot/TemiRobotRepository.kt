@@ -19,7 +19,8 @@ class TemiRobotRepository(
         TemiSessionManager.speak(message)
     }
 
-    override fun goToLocation(location: String) = TemiSessionManager.goToLocation(location)
+    override fun goToLocation(location: String, arrivalMessage: String?) =
+        TemiSessionManager.goToLocation(location, arrivalMessage)
 
     override fun cancelNavigationByUser() = TemiSessionManager.cancelNavigationByUser()
 

@@ -47,42 +47,44 @@ class TilesViewModel(
         _effect.value = null
     }
 
-    private fun requestFor(category: TileCategory): ProductListRequest = when (category) {
-        TileCategory.BATHROOMS -> ProductListRequest(
-            category = ProductCategory.FLOOR_AND_WALL_BATHROOMS,
-            title = "Pisos y paredes para Baños y Cocinas",
-            firstColumnTitle = "Únicamente para Paredes",
-            secondColumnTitle = "Para Pisos y Paredes",
-            robotLocation = "baños revestimientos alfa",
-            video = ProductVideo.FLOOR_AND_WALL,
-            pageSize = 15,
-            maxProductsPerColumn = 15,
-            firstColumnOrder = "id desc",
-            secondColumnOrder = "id desc"
-        )
-        TileCategory.SOCIAL_AREAS -> ProductListRequest(
-            category = ProductCategory.FLOOR_AND_WALL_SOCIAL,
-            title = "Porcelanatos y Ceramicas para Zonas Sociales",
-            firstColumnTitle = "Porcelanatos",
-            secondColumnTitle = "Ceramica",
-            robotLocation = "zona social revestimiento",
-            video = ProductVideo.FLOOR_AND_WALL,
-            pageSize = 10,
-            maxProductsPerColumn = 10,
-            firstColumnOrder = "id asc",
-            secondColumnOrder = "id desc"
-        )
-        TileCategory.EXTERIORS -> ProductListRequest(
-            category = ProductCategory.FLOOR_AND_WALL_EXTERIORS,
-            title = "Pisos y Paredes para Exteriores",
-            firstColumnTitle = "Únicamente para Paredes",
-            secondColumnTitle = "Para Pisos y Paredes",
-            robotLocation = "pisos exteriores alfa",
-            video = ProductVideo.FLOOR_AND_WALL,
-            pageSize = 15,
-            maxProductsPerColumn = 15,
-            firstColumnOrder = "id desc",
-            secondColumnOrder = "id asc"
-        )
+    companion object {
+        fun requestFor(category: TileCategory): ProductListRequest = when (category) {
+            TileCategory.BATHROOMS -> ProductListRequest(
+                category = ProductCategory.FLOOR_AND_WALL_BATHROOMS,
+                title = "Pisos y paredes para Baños y Cocinas",
+                firstColumnTitle = "Únicamente para Paredes",
+                secondColumnTitle = "Para Pisos y Paredes",
+                robotLocation = "baños revestimientos alfa",
+                video = ProductVideo.FLOOR_AND_WALL,
+                pageSize = 15,
+                maxProductsPerColumn = 15,
+                firstColumnOrder = "id desc",
+                secondColumnOrder = "id desc"
+            )
+            TileCategory.SOCIAL_AREAS -> ProductListRequest(
+                category = ProductCategory.FLOOR_AND_WALL_SOCIAL,
+                title = "Porcelanatos y Ceramicas para Zonas Sociales",
+                firstColumnTitle = "Porcelanatos",
+                secondColumnTitle = "Ceramica",
+                robotLocation = "zona social revestimiento",
+                video = ProductVideo.FLOOR_AND_WALL,
+                pageSize = 10,
+                maxProductsPerColumn = 10,
+                firstColumnOrder = "id asc",
+                secondColumnOrder = "id desc"
+            )
+            TileCategory.EXTERIORS -> ProductListRequest(
+                category = ProductCategory.FLOOR_AND_WALL_EXTERIORS,
+                title = "Pisos y Paredes para Exteriores",
+                firstColumnTitle = "Únicamente para Paredes",
+                secondColumnTitle = "Para Pisos y Paredes",
+                robotLocation = "pisos exteriores alfa",
+                video = ProductVideo.FLOOR_AND_WALL,
+                pageSize = 15,
+                maxProductsPerColumn = 15,
+                firstColumnOrder = "id desc",
+                secondColumnOrder = "id asc"
+            )
+        }
     }
 }

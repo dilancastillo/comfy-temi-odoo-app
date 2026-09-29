@@ -10,9 +10,15 @@ class MqttController(
     private val onStatus: (String) -> Unit
 ) {
 
-    private var client: MqttClient? = null
+    @Volatile private var client: MqttClient? = null
 
+    // La conexión TLS con el broker es bloqueante: se hace en un hilo aparte para que la pantalla
+    // no se congele (y Android no la cierre por ANR) mientras la red responde.
     fun connect() {
+        Thread({ connectBlocking() }, "mqtt-connect").start()
+    }
+
+    private fun connectBlocking() {
         try {
             client = MqttClient(
                 "ssl://c91d1798a8a74ab68c913b5a83204947.s1.eu.hivemq.cloud:8883",
@@ -54,9 +60,13 @@ class MqttController(
     }
 
     fun disconnect() {
-        try {
-            client?.disconnect()
-            client?.close()
-        } catch (_: Exception) {}
+        val current = client ?: return
+        client = null
+        Thread({
+            try {
+                current.disconnect()
+                current.close()
+            } catch (_: Exception) {}
+        }, "mqtt-disconnect").start()
     }
 }

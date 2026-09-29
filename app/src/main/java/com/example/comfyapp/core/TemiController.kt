@@ -7,6 +7,8 @@ import android.os.Looper
 import com.example.comfyapp.logging.PersistentLog as Log
 import android.widget.Toast
 import com.example.comfyapp.agent.AgentSpeechController
+import com.example.comfyapp.logging.AssistanceEventLog
+import com.example.comfyapp.session.CustomerSessionManager
 import com.robotemi.sdk.Robot
 import com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener
 import com.robotemi.sdk.listeners.OnRobotReadyListener
@@ -41,12 +43,15 @@ class TemiController(
     private var returningToCenter = false
     private var activeTarget: String? = null
     private var cancelledTarget: String? = null
+    private var arrivalMessage: String? = null
 
 
 
     companion object {
         private const val TAG = "TemiController"
         private const val INACTIVITY_TIMEOUT = 40 * 1000L
+        // ubicación del mapa a la que Temi vuelve por inactividad (en la tienda es "centro sala")
+        private const val HOME_LOCATION = "andres"
     }
 
     fun start() {
@@ -70,7 +75,11 @@ class TemiController(
         onStatus(if (isReady) "Robot listo" else "Robot no disponible")
     }
 
-    fun goToLocation(location: String, automaticReturn: Boolean = false): Boolean {
+    fun goToLocation(
+        location: String,
+        automaticReturn: Boolean = false,
+        arrivalMessage: String? = null
+    ): Boolean {
         if (!robotReady) {
             toast("Robot no listo")
             handleNavigationStartFailure(automaticReturn)
@@ -96,6 +105,7 @@ class TemiController(
         onNavigationStateChanged?.invoke(true)
         returningToCenter = automaticReturn
         activeTarget = target
+        this.arrivalMessage = arrivalMessage
         navigationStartedByUser = true
         abortExpectedFromUser = false
 
@@ -145,22 +155,33 @@ class TemiController(
             returningToCenter = false
             activeTarget = null
             LocationEventManager.notifyLocationArrived(location)
+            AssistanceEventLog.event("navigation_completed", "location" to location)
             last_location = location
+            val customArrivalMessage = arrivalMessage
+            arrivalMessage = null
             onArrived?.invoke()
             val isHomeBase = location.equals("home base", ignoreCase = true)
-            val isCentroSala = location.equals("centro sala", ignoreCase = true)
+            val isCentroSala = location.equals(HOME_LOCATION, ignoreCase = true)
 
             // Solo habla si NO es Home Base ni Centro Sala
             if (!isHomeBase && !isCentroSala) {
-                speakAfterCurrent("Aquí puedes ver las últimas tendencias para la zona que seleccionaste. Además, puedes ver sus especificaciones haciendo clic sobre cada producto.")
+                speakAfterCurrent(
+                    customArrivalMessage
+                        ?: "Aquí puedes ver las últimas tendencias para la zona que seleccionaste. Además, puedes ver sus especificaciones haciendo clic sobre cada producto."
+                )
             }
 
-            if (location.equals("centro sala", ignoreCase = true)) {
+            if (location.equals(HOME_LOCATION, ignoreCase = true)) {
 
                 Log.d(TAG, "Llegó a centro salaz")
 
                 isAtHomeBase = true
                 cancelInactivityTimer()
+                // Volver a Centro Sala cierra la atención: el próximo cliente empieza sin contexto.
+                if (CustomerSessionManager.hasActiveCustomer()) {
+                    CustomerSessionManager.reset()
+                    AssistanceEventLog.event("session_reset", "reason" to "returned_to_centro_sala")
+                }
 
                 //CLAVE
                 if (arrivedHomeByInactivity) {
@@ -198,6 +219,7 @@ class TemiController(
             }
         }
         if (status == "abort") {
+            arrivalMessage = null
             val failedWhileReturning = returningToCenter
             isNavigating = false
             onNavigationStateChanged?.invoke(false)
@@ -303,6 +325,7 @@ class TemiController(
         cancelledTarget = activeTarget
         arrivedHomeByInactivity = false
         activeTarget = null
+        arrivalMessage = null
         isNavigating = false
         onNavigationStateChanged?.invoke(false)
         returningToCenter = false
@@ -318,6 +341,7 @@ class TemiController(
         if (isNavigating) {
             cancelledTarget = activeTarget
             activeTarget = null
+            arrivalMessage = null
             isNavigating = false
             onNavigationStateChanged?.invoke(false)
             returningToCenter = false
@@ -349,13 +373,18 @@ class TemiController(
             if (isAtHomeBase || isNavigating) return@Runnable
 
             Log.d(TAG, "Inactividad detectada → volver a centro sala")
+            // La atención terminó por inactividad aunque el regreso falle: el siguiente es otro cliente.
+            if (CustomerSessionManager.hasActiveCustomer()) {
+                CustomerSessionManager.reset()
+                AssistanceEventLog.event("session_reset", "reason" to "inactivity")
+            }
 
             arrivedHomeByInactivity = true
 
             stopSpeaking()
             speak("Gracias por interactuar conmigo, regresaré a Centro Sala")
 
-            goToLocation("centro sala", automaticReturn = true)
+            goToLocation(HOME_LOCATION, automaticReturn = true)
         }
 
         inactivityHandler.postDelayed(inactivityRunnable!!, INACTIVITY_TIMEOUT)

@@ -144,7 +144,7 @@ class ProductListUserActivity : AppCompatActivity() {
             openCategories("back_to_categories_button")
         }
         binding.floatingMenu.btnHablar.setOnClickListener {
-            openCategories("btn_hablar")
+            openCategories("btn_hablar", startAgent = true)
         }
     }
 
@@ -259,7 +259,7 @@ class ProductListUserActivity : AppCompatActivity() {
         stationaryScreenHandler.removeCallbacks(stationaryScreenTimeout)
     }
 
-    private fun openCategories(reason: String) {
+    private fun openCategories(reason: String, startAgent: Boolean = false) {
         Log.i(
             TAG,
             "return_to_categories reason=$reason " +
@@ -268,6 +268,7 @@ class ProductListUserActivity : AppCompatActivity() {
         startActivity(
             Intent(this, ProductsUserActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                putExtra(ProductsUserActivity.EXTRA_START_AGENT, startAgent)
             }
         )
     }

@@ -50,7 +50,7 @@ class ProductsUserViewModel(
     }
 
     companion object {
-        private val SANITARY_REQUEST = ProductListRequest(
+        val SANITARY_REQUEST = ProductListRequest(
             category = ProductCategory.SANITARY,
             title = "Sanitarios y Accesorios",
             firstColumnTitle = "Combos",
@@ -60,7 +60,7 @@ class ProductsUserViewModel(
             pageSize = 15
         )
 
-        private val TAPS_REQUEST = ProductListRequest(
+        val TAPS_REQUEST = ProductListRequest(
             category = ProductCategory.TAPS,
             title = "Griferías",
             firstColumnTitle = "Lavamanos",

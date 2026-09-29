@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.comfyapp.R
 import com.example.comfyapp.databinding.ItemProductBinding
+import com.example.comfyapp.domain.model.PriceFormatter
 import com.example.comfyapp.domain.model.Product
 
 class ProductAdapter(
@@ -29,7 +30,7 @@ class ProductAdapter(
             Log.d("ADAPTER_BIND", "Binding producto: ${product.name}")
 
             binding.tvName.text = product.name
-            binding.tvPrice.text = "Precio: ${product.price}"
+            binding.tvPrice.text = "Precio: ${PriceFormatter.format(product.price)}"
             binding.badgeStock.text = "Stock: ${product.stock}"
 
             // CARGA POR URL (NO BASE64)

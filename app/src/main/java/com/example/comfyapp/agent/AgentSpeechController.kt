@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import com.example.comfyapp.logging.PersistentLog as Log
 import com.example.comfyapp.BuildConfig
+import com.example.comfyapp.core.NetworkStatus
 import com.microsoft.cognitiveservices.speech.CancellationDetails
 import com.microsoft.cognitiveservices.speech.ResultReason
 import com.microsoft.cognitiveservices.speech.SpeechConfig
@@ -15,6 +16,7 @@ import com.robotemi.sdk.Robot
 import com.robotemi.sdk.TtsRequest
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
 class AgentSpeechController {
@@ -26,7 +28,10 @@ class AgentSpeechController {
     }
 
     private val robot = Robot.getInstance()
-    private val executor = Executors.newSingleThreadExecutor()
+    // Hablar y escuchar en hilos distintos: una síntesis colgada (sin red) no puede bloquear la
+    // escucha, y cada frase nueva tiene su propio hilo aunque la anterior siga esperando a Azure.
+    private val speakExecutor = Executors.newCachedThreadPool()
+    private val listenExecutor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val speechGeneration = AtomicLong()
     private val listenGeneration = AtomicLong()
@@ -56,18 +61,44 @@ class AgentSpeechController {
         }
         synchronized(speechLock) { isSpeaking = true }
         trace("AGENTE: $text")
-        if (!hasAzure) {
-            robot.speak(TtsRequest.create(text, false))
-            mainHandler.postDelayed({ completeSpeech(requestId, onComplete) }, 3_000)
+        if (!hasAzure || !NetworkStatus.isOnline()) {
+            speakWithTemi(requestId, text, onComplete)
             return
         }
-        executor.execute {
+
+        // La frase termina una sola vez: por Azure, o por la voz de Temi si Azure falla o no responde.
+        val done = AtomicBoolean(false)
+        val audioStarted = AtomicBoolean(false)
+        val finish = {
+            if (done.compareAndSet(false, true)) mainHandler.post { completeSpeech(requestId, onComplete) }
+        }
+        val fallbackToTemi = { reason: String ->
+            // Si la frase ya se cortó a propósito (otra frase o cambio de pantalla) no se repite.
+            if (done.compareAndSet(false, true) && isCurrentSpeech(requestId)) {
+                Log.w(TAG, "Azure TTS $reason; se usa TTS de Temi")
+                mainHandler.post { if (isCurrentSpeech(requestId)) speakWithTemi(requestId, text, onComplete) }
+            }
+        }
+        // Con red lenta Azure puede quedarse esperando sin sonar: si en unos segundos no llega audio,
+        // habla Temi y la conversación sigue (el contador de escucha no queda congelado).
+        mainHandler.postDelayed({
+            if (isCurrentSpeech(requestId) && !audioStarted.get() && !done.get()) {
+                try { synthesizer?.StopSpeakingAsync() } catch (_: Exception) { }
+                fallbackToTemi("sin audio en ${AZURE_FIRST_AUDIO_TIMEOUT_MS} ms")
+            }
+        }, AZURE_FIRST_AUDIO_TIMEOUT_MS)
+
+        speakExecutor.execute {
             if (!isCurrentSpeech(requestId)) return@execute
             var currentSynthesizer: SpeechSynthesizer? = null
             try {
                 val speechConfig = speechConfig()
                 val audioConfig = AudioConfig.fromDefaultSpeakerOutput()
                 val activeSynthesizer = SpeechSynthesizer(speechConfig, audioConfig)
+                // Cualquiera de los dos indica que el servicio respondió; así una frase que sí está
+                // sonando nunca se corta para repetirla con la voz de Temi.
+                activeSynthesizer.SynthesisStarted.addEventListener { _, _ -> audioStarted.set(true) }
+                activeSynthesizer.Synthesizing.addEventListener { _, _ -> audioStarted.set(true) }
                 currentSynthesizer = activeSynthesizer
                 synthesizer = activeSynthesizer
                 if (!isCurrentSpeech(requestId)) {
@@ -75,24 +106,24 @@ class AgentSpeechController {
                     return@execute
                 }
                 val result = activeSynthesizer.SpeakText(text)
-                if (result.reason != ResultReason.SynthesizingAudioCompleted) {
-                    Log.w(TAG, "Azure TTS finalizó con ${result.reason}")
-                }
+                val completed = result.reason == ResultReason.SynthesizingAudioCompleted
                 result.close(); activeSynthesizer.close(); audioConfig.close(); speechConfig.close()
+                // Cancelado (por ejemplo sin red) no sonó nada: se dice con la voz de Temi.
+                if (completed) finish() else fallbackToTemi("finalizó con ${result.reason}")
             } catch (error: Exception) {
-                Log.w(TAG, "Azure TTS no disponible; se usa TTS de Temi", error)
-                mainHandler.post {
-                    if (isCurrentSpeech(requestId)) {
-                        robot.speak(TtsRequest.create(text, false))
-                        mainHandler.postDelayed({ completeSpeech(requestId, onComplete) }, 3_000)
-                    }
-                }
-                return@execute
+                Log.w(TAG, "Azure TTS no disponible", error)
+                fallbackToTemi("con error")
             } finally {
                 if (synthesizer === currentSynthesizer) synthesizer = null
             }
-            mainHandler.post { completeSpeech(requestId, onComplete) }
         }
+    }
+
+    // La voz de Temi no avisa cuándo termina: se estima por el largo del texto.
+    private fun speakWithTemi(requestId: Long, text: String, onComplete: () -> Unit) {
+        robot.speak(TtsRequest.create(text, false))
+        val estimatedMs = maxOf(TEMI_TTS_MIN_MS, text.length * TEMI_TTS_MS_PER_CHAR)
+        mainHandler.postDelayed({ completeSpeech(requestId, onComplete) }, estimatedMs)
     }
 
     fun speakAfterCurrent(text: String, onComplete: () -> Unit = {}) {
@@ -114,7 +145,13 @@ class AgentSpeechController {
             if (isCurrentListen(requestId)) callback(ListenResult.Error("Azure Speech no configurado"))
             return
         }
-        executor.execute {
+        // Sin red Azure no puede reconocer: se responde de inmediato en vez de esperar el timeout.
+        if (!NetworkStatus.isOnline()) {
+            trace("STT_ERROR: sin conexión")
+            mainHandler.post { if (isCurrentListen(requestId)) callback(ListenResult.Error("Sin conexión a internet")) }
+            return
+        }
+        listenExecutor.execute {
             if (!isCurrentListen(requestId)) return@execute
             val result = try {
                 val speechConfig = speechConfig().apply {
@@ -186,7 +223,8 @@ class AgentSpeechController {
         destroyed = true
         stopListening()
         stopSpeaking()
-        executor.shutdownNow()
+        speakExecutor.shutdownNow()
+        listenExecutor.shutdownNow()
     }
 
     private fun isCurrentSpeech(requestId: Long) = !destroyed && requestId == speechGeneration.get()
@@ -209,5 +247,8 @@ class AgentSpeechController {
         val shared: AgentSpeechController by lazy { AgentSpeechController() }
         private const val TAG = "AgentSpeech"
         private const val TRACE_TAG = "AgentTrace"
+        private const val AZURE_FIRST_AUDIO_TIMEOUT_MS = 5_000L
+        private const val TEMI_TTS_MIN_MS = 2_500L
+        private const val TEMI_TTS_MS_PER_CHAR = 65L
     }
 }

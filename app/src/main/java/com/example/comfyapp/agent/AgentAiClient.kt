@@ -1,10 +1,13 @@
-// interpreta el texto del usuario con gemini y decide que pantalla abrir
+// interpreta el texto del usuario con gemini: analisis de intencion (router v2) o pantalla a abrir (flujo anterior)
 package com.example.comfyapp.agent
 
 import android.os.Handler
 import android.os.Looper
 import com.example.comfyapp.logging.PersistentLog as Log
 import com.example.comfyapp.BuildConfig
+import com.example.comfyapp.domain.model.CustomerContext
+import com.example.comfyapp.domain.model.IntentAnalysis
+import com.example.comfyapp.domain.repository.IntentAnalyzer
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -13,7 +16,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
-class AgentAiClient {
+class AgentAiClient : IntentAnalyzer {
 
     data class Decision(
         val screenId: String = "",
@@ -37,8 +40,66 @@ class AgentAiClient {
     // un nuevo ciclo de detección para no arrastrar contexto de un cliente anterior.
     private val history = mutableListOf<Pair<String, String>>()
 
-    fun reset() {
+    override fun reset() {
         history.clear()
+    }
+
+    override fun analyze(
+        text: String,
+        context: CustomerContext,
+        lastQuestion: String?,
+        callback: (Result<IntentAnalysis>) -> Unit
+    ) {
+        if (BuildConfig.GEMINI_API_KEY.isBlank()) {
+            callback(Result.failure(IllegalStateException("GEMINI_API_KEY no configurada")))
+            return
+        }
+
+        val historySnapshot = history.toList()
+        // El contexto acumulado lo manda la app en cada turno: la memoria del cliente no depende
+        // del historial de Gemini, que solo ayuda a entender respuestas cortas.
+        val userTurn = buildString {
+            append("CONTEXTO ACTUAL DEL CLIENTE: ")
+            append(IntentAnalysisParser.contextToJson(context))
+            lastQuestion?.takeIf { it.isNotBlank() }?.let { append("\nTemi preguntó: ").append(it) }
+            append("\nEl cliente dijo: ").append(text)
+        }
+
+        Thread {
+            val result = runWithFallback { model ->
+                val raw = requestContent(
+                    model = model,
+                    systemPrompt = INTENT_PROMPT,
+                    userText = userTurn,
+                    history = historySnapshot,
+                    responseSchema = IntentAnalysisParser.responseSchema().toString()
+                )
+                IntentAnalysisParser.parse(raw)
+            }
+
+            result.getOrNull()?.let {
+                history.add("user" to "El cliente dijo: $text")
+                history.add("model" to "{\"assistance_type\":\"${it.assistanceType}\"}")
+                while (history.size > MAX_HISTORY_TURNS * 2) history.removeAt(0)
+            }
+
+            mainHandler.post { callback(result) }
+        }.start()
+    }
+
+    // Prueba el modelo principal y, si falla (cuota, red, respuesta inválida), el de respaldo.
+    private fun <T> runWithFallback(block: (model: String) -> T): Result<T> {
+        var lastError: Throwable? = null
+        for ((index, model) in modelsToTry.withIndex()) {
+            val attempt = runCatching { block(model) }
+            attempt.onSuccess { return Result.success(it) }
+            attempt.onFailure { error ->
+                lastError = error
+                Log.w(TAG, "Falló el modelo '$model'" +
+                    if (index < modelsToTry.lastIndex) ", se intenta con el de respaldo" else "", error)
+            }
+        }
+        return Result.failure(lastError ?: IllegalStateException("Gemini no respondió"))
     }
 
     fun resolver(
@@ -53,25 +114,7 @@ class AgentAiClient {
         val historySnapshot = history.toList()
 
         Thread {
-            var lastError: Exception? = null
-            var decision: Decision? = null
-
-            for ((index, model) in modelsToTry.withIndex()) {
-                val attemptResult = runCatching { requestDecision(model, textoUsuario, historySnapshot) }
-                attemptResult.onSuccess {
-                    decision = it
-                    lastError = null
-                }
-                attemptResult.onFailure { error ->
-                    lastError = error as? Exception ?: Exception(error)
-                    Log.w(TAG, "Falló el modelo '$model'" +
-                        if (index < modelsToTry.lastIndex) ", se intenta con el de respaldo" else "", error)
-                }
-                if (decision != null) break
-            }
-
-            val result = decision?.let { Result.success(it) }
-                ?: Result.failure(lastError ?: IllegalStateException("Gemini no respondió"))
+            val result = runWithFallback { model -> requestDecision(model, textoUsuario, historySnapshot) }
 
             result.getOrNull()?.let {
                 if (BuildConfig.DEBUG) {
@@ -87,7 +130,126 @@ class AgentAiClient {
     }
 
     private fun requestDecision(model: String, textoUsuario: String, history: List<Pair<String, String>>): Decision {
-        val systemPrompt = """
+        val raw = requestContent(
+            model = model,
+            systemPrompt = SCREEN_PROMPT,
+            userText = "El usuario dijo: $textoUsuario",
+            history = history
+        )
+        return parseDecision(raw)
+    }
+
+    // Devuelve el texto del primer candidato de Gemini (el JSON que pedimos), sin interpretarlo.
+    private fun requestContent(
+        model: String,
+        systemPrompt: String,
+        userText: String,
+        history: List<Pair<String, String>>,
+        responseSchema: String? = null
+    ): String {
+        val body = JSONObject().apply {
+            put(
+                "system_instruction",
+                JSONObject().put(
+                    "parts",
+                    JSONArray().put(JSONObject().put("text", systemPrompt))
+                )
+            )
+            put(
+                "contents",
+                JSONArray().apply {
+                    history.forEach { (role, text) ->
+                        put(
+                            JSONObject()
+                                .put("role", role)
+                                .put("parts", JSONArray().put(JSONObject().put("text", text)))
+                        )
+                    }
+                    put(
+                        JSONObject()
+                            .put("role", "user")
+                            .put("parts", JSONArray().put(JSONObject().put("text", userText)))
+                    )
+                }
+            )
+            put(
+                "generationConfig",
+                JSONObject()
+                    .put("responseMimeType", "application/json")
+                    .put("maxOutputTokens", 512) // más margen
+                    .put(
+                        "thinkingConfig",
+                        JSONObject().put("thinkingBudget", 0) // desactiva el thinking
+                    )
+                    .apply { responseSchema?.let { put("responseSchema", JSONObject(it)) } }
+            )
+        }
+
+        val request = Request.Builder()
+            .url("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent")
+            .addHeader("x-goog-api-key", BuildConfig.GEMINI_API_KEY)
+            .post(body.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+
+        httpClient.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Gemini HTTP ${response.code}: ${raw.take(800)}")
+            }
+            logTokenUsage(raw, model)
+            return candidateText(raw)
+        }
+    }
+
+    private fun candidateText(raw: String): String {
+        val candidates = JSONObject(raw).optJSONArray("candidates")
+        if (candidates == null || candidates.length() == 0) {
+            Log.w(TAG, "Gemini no devolvió candidates: $raw")
+            return ""
+        }
+        val candidate = candidates.getJSONObject(0)
+        val parts = candidate.optJSONObject("content")?.optJSONArray("parts")
+        if (parts == null || parts.length() == 0) {
+            Log.w(TAG, "Sin parts en la respuesta (finishReason=${candidate.optString("finishReason")}): $raw")
+            return ""
+        }
+        return parts.getJSONObject(0).optString("text")
+    }
+
+    private fun parseDecision(text: String): Decision {
+        if (text.isBlank()) {
+            return Decision(screenId = "", mensaje = "No le entendí bien, ¿me puede repetir por favor?")
+        }
+        val json = JSONObject(
+            text.trim()
+                .removePrefix("```json")
+                .removePrefix("```")
+                .removeSuffix("```")
+                .trim()
+        )
+        return Decision(
+            screenId = json.optString("screen_id", ""),
+            mensaje = json.optString("mensaje", "")
+        )
+    }
+
+    companion object {
+        private const val TAG = "AgentAiClient"
+        private const val TRACE_TAG = "AgentTrace"
+        private const val MAX_HISTORY_TURNS = 3 // pares user/model
+
+        // Cliente compartido: OkHttp reutiliza conexiones TCP/TLS entre peticiones al mismo
+        // host en vez de abrir una nueva por cada pregunta (como hacía HttpURLConnection con
+        // disconnect() forzado). Una sola instancia para toda la app.
+        private val httpClient: OkHttpClient by lazy {
+            OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(13, TimeUnit.SECONDS)
+                .build()
+        }
+
+        // Prompt del flujo anterior (ASSISTANCE_ROUTER_V2 = false): Gemini escoge la pantalla.
+        private val SCREEN_PROMPT = """
         Eres el asistente de voz de un robot en la tienda física de materiales de construcción Comfer, ubicada en Boyacá, Colombia.
         Los clientes hablan de forma informal, con acento boyacense o del altiplano, a veces con errores de dictado por voz, muletillas ("pues", "o sea", "este...", "digamos") y frases cortas o incompletas.
 
@@ -146,94 +308,109 @@ class AgentAiClient {
         {"screen_id":"","mensaje":"No le entendí bien, ¿me puede repetir por favor?"}
         """.trimIndent()
 
-        val body = JSONObject().apply {
-            put(
-                "system_instruction",
-                JSONObject().put(
-                    "parts",
-                    JSONArray().put(JSONObject().put("text", systemPrompt))
-                )
-            )
-            put(
-                "contents",
-                JSONArray().apply {
-                    history.forEach { (role, text) ->
-                        put(
-                            JSONObject()
-                                .put("role", role)
-                                .put("parts", JSONArray().put(JSONObject().put("text", text)))
-                        )
-                    }
-                    put(
-                        JSONObject()
-                            .put("role", "user")
-                            .put(
-                                "parts",
-                                JSONArray().put(
-                                    JSONObject().put("text", "El usuario dijo: $textoUsuario")
-                                )
-                            )
-                    )
-                }
-            )
-            put(
-                "generationConfig",
-                JSONObject()
-                    .put("responseMimeType", "application/json")
-                    .put("maxOutputTokens", 512) // más margen
-                    .put(
-                        "thinkingConfig",
-                        JSONObject().put("thinkingBudget", 0) // desactiva el thinking
-                    )
-            )
-        }
+        // Prompt del router V2: Gemini solo entiende y estructura; la app decide qué hacer.
+        private val INTENT_PROMPT = """
+        Eres el analizador de intención comercial de Temi, robot de primera atención de COMFER Red Azul,
+        tienda física de materiales de construcción y acabados en Boyacá, Colombia.
+        Los clientes hablan informal, con acento boyacense o del altiplano, con muletillas ("pues", "o sea",
+        "este...") y a veces con errores de dictado por voz (ej. "solitario" en vez de "sanitario").
 
-        val request = Request.Builder()
-            .url("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent")
-            .addHeader("x-goog-api-key", BuildConfig.GEMINI_API_KEY)
-            .post(body.toString().toRequestBody("application/json".toMediaType()))
-            .build()
+        NO debes decidir pantallas.
+        NO debes decidir Activities.
+        NO debes recomendar productos todavía.
+        NO debes ejecutar acciones.
 
-        httpClient.newCall(request).execute().use { response ->
-            val raw = response.body?.string().orEmpty()
-            if (!response.isSuccessful) {
-                throw IllegalStateException("Gemini HTTP ${response.code}: ${raw.take(800)}")
-            }
-            logTokenUsage(raw, model)
-            return parseDecision(raw)
-        }
-    }
+        Tu tarea es:
+        1. Entender lo que el cliente quiere hacer.
+        2. Extraer el contexto que ya expresó.
+        3. Clasificar el tipo de ayuda.
+        Responde SOLO con el JSON del esquema, sin texto adicional.
 
-    private fun parseDecision(raw: String): Decision {
-        val root = JSONObject(raw)
-        val candidates = root.optJSONArray("candidates")
-        if (candidates == null || candidates.length() == 0) {
-            Log.w(TAG, "Gemini no devolvió candidates: $raw")
-            return Decision(screenId = "", mensaje = "No le entendí bien, ¿me puede repetir por favor?")
-        }
+        TIPOS DE AYUDA
+        - EXACT_PRODUCT: nombra una marca, referencia o producto concreto ("sanitario Acuacer").
+        - CATEGORY_BROWSE: solo menciona una categoría ("necesito un sanitario").
+        - PROJECT_ASSISTANCE: describe una obra o proyecto ("estoy remodelando el baño").
+        - TECHNICAL_NEED: expresa una condición técnica o de uso (antideslizante, tráfico alto, gran formato,
+          resistente al agua, para exterior, color o tamaño específico).
+        - LOCATION_ONLY: pregunta dónde está algo o pide que lo lleven ("¿dónde están las griferías?",
+          "llévame a sanitarios").
+        - JUST_BROWSING: dice que solo está mirando y no necesita ayuda por ahora.
+        - HUMAN_ADVISOR: pide hablar con una persona, asesora, vendedor, o cotizar con alguien.
+        - CLARIFICATION: no hay información suficiente para saber qué necesita.
+        - UNSUPPORTED: pide algo que no son sanitarios, griferías ni pisos y paredes (pintura, herramientas,
+          cemento, horarios, créditos, etc.).
 
-        val candidate = candidates.getJSONObject(0)
-        val finishReason = candidate.optString("finishReason")
-        val parts = candidate.optJSONObject("content")?.optJSONArray("parts")
+        REGLAS DE PRIORIDAD (aplica la primera que se cumpla)
+        1. Si pide explícitamente un humano -> HUMAN_ADVISOR.
+        2. Si pregunta únicamente dónde está algo o pide que lo lleven -> LOCATION_ONLY.
+        3. Si identifica una referencia o producto concreto -> EXACT_PRODUCT.
+        4. Si describe un proyecto -> PROJECT_ASSISTANCE.
+        5. Si expresa una condición técnica -> TECHNICAL_NEED.
+        6. Si solamente menciona una categoría -> CATEGORY_BROWSE.
+        7. Si no hay información suficiente -> CLARIFICATION.
+        Aunque gane una regla, llena TODOS los campos que el cliente haya mencionado (proyecto, espacio,
+        estilo, etc.): nunca se pierde información.
 
-        if (parts == null || parts.length() == 0) {
-            Log.w(TAG, "Sin parts en la respuesta (finishReason=$finishReason): $raw")
-            return Decision(screenId = "", mensaje = "No le entendí bien, ¿me puede repetir por favor?")
-        }
+        CAMPOS
+        - category: SANITARY (inodoros, sanitarios, lavamanos, combos de baño), TAPS (griferías, llaves,
+          monocomandos, mezcladores, duchas como producto), FLOOR_AND_WALL (pisos, paredes, cerámica,
+          porcelanato, baldosa, enchape, revestimiento, azulejo). null si no nombra un producto: un espacio
+          NO es una categoría ("estoy remodelando el baño" -> category null, space "baño").
+        - product_type: solo si pide un tipo concreto dentro de la categoría: COMBO (combo de baño, sanitario con
+          lavamanos), SANITARIO_SOLO (solo el sanitario, sin combo), LAVAMANOS (grifería o llave de lavamanos),
+          LAVAPLATOS (grifería o llave de lavaplatos o de cocina), PAREDES (revestimiento o enchape solo para
+          paredes), PISOS (para piso), PORCELANATO, CERAMICA. null si no lo especifica.
+        - exact_product_query: solo la marca, línea o referencia que distingue al producto, SIN el tipo de producto
+          (ej. "sanitario Montecarlo" -> "montecarlo", "la llave Cusco" -> "cusco", "combo Laguna" -> "laguna").
+        - space: espacio en pocas palabras (ej. "baño", "cocina", "sala", "terraza", "patio").
+        - project: tipo de obra en pocas palabras (ej. "remodelación", "construcción nueva").
+        - style: estilo (ej. "moderno", "clásico", "rústico").
+        - color: color pedido (ej. "blanco", "gris").
+        - budget_level: economico (lo más barato), economico_moderado ("no tan caro", "buen precio"),
+          medio, alto (lo mejor, sin importar precio).
+        - max_price: precio máximo en pesos colombianos, como número entero, solo si dice una cifra
+          ("menos de 100 mil" -> 100000, "hasta 2 millones" -> 2000000, "que no pase de 350 mil" -> 350000).
+        - technical_needs: condiciones técnicas en minúscula (ej. "antideslizante", "exterior", "gran formato").
+        - needs_clarification: true si falta información para saber qué necesita.
+        - next_question: solo si needs_clarification es true; una sola pregunta de máximo 15 palabras, amable
+          y natural en español de Colombia, tuteando, sin saludar, para obtener lo que falta.
+        Todo campo no mencionado va en null (o lista vacía). No inventes datos.
 
-        val text = parts.getJSONObject(0)
-            .getString("text")
-            .trim()
-            .removePrefix("```json")
-            .removePrefix("```")
-            .removeSuffix("```")
-            .trim()
+        CONTEXTO DE LA SESIÓN
+        Recibirás el CONTEXTO ACTUAL DEL CLIENTE (lo que ya se sabe) y, si existe, la última pregunta de Temi.
+        - Úsalo para entender respuestas cortas: si Temi preguntó "¿qué buscas para el baño?" y el cliente dice
+          "un sanitario", es CATEGORY_BROWSE con category SANITARY.
+        - Si el cliente solo agrega o corrige un dato ("que sea moderno", "mejor en blanco", "no tan caro"),
+          conserva el assistance_type del contexto y devuelve solo el dato nuevo.
+        - Si Temi hizo una pregunta de sí o no, interpreta el "sí" o el "no" según esa pregunta.
+        - No repitas en tu respuesta los datos del contexto que el cliente no volvió a mencionar.
 
-        val json = JSONObject(text)
-        return Decision(
-            screenId = json.optString("screen_id", ""),
-            mensaje = json.optString("mensaje", "")
-        )
+        EJEMPLOS
+        "Busco sanitario Acuacer" -> EXACT_PRODUCT, category SANITARY, exact_product_query "acuacer"
+        "Necesito un sanitario" -> CATEGORY_BROWSE, category SANITARY
+        "Estoy remodelando el baño" -> PROJECT_ASSISTANCE, project "remodelación", space "baño"
+        "Necesito un piso antideslizante para una terraza" -> TECHNICAL_NEED, category FLOOR_AND_WALL,
+          space "terraza", technical_needs ["antideslizante", "exterior"]
+        "¿Dónde están las griferías?" -> LOCATION_ONLY, category TAPS
+        "Llévame a sanitarios" -> LOCATION_ONLY, category SANITARY
+        "Necesito hablar con una asesora" / "Quiero cotizar con alguien" -> HUMAN_ADVISOR
+        "Estoy remodelando un baño y quiero hablar con una asesora" -> HUMAN_ADVISOR, project "remodelación",
+          space "baño"
+        "Estoy remodelando un baño y busco sanitario Acuacer" -> EXACT_PRODUCT, category SANITARY,
+          exact_product_query "acuacer", project "remodelación", space "baño"
+        "¿Dónde encuentro el sanitario Acuacer?" -> LOCATION_ONLY, category SANITARY, exact_product_query "acuacer"
+        "Necesito porcelanato gris grande para la sala" -> TECHNICAL_NEED, category FLOOR_AND_WALL, space "sala",
+          color "gris", technical_needs ["gran formato"]
+        "Una grifería de menos de 100 mil pesos" -> CATEGORY_BROWSE, category TAPS, max_price 100000,
+          budget_level economico
+        "Busco un combo" -> CATEGORY_BROWSE, category SANITARY, product_type COMBO
+        "Una llave para el lavaplatos" -> CATEGORY_BROWSE, category TAPS, product_type LAVAPLATOS
+        "Solo pared para exteriores" -> CATEGORY_BROWSE, category FLOOR_AND_WALL, space "exterior", product_type PAREDES
+        "Solo estoy mirando" -> JUST_BROWSING
+        "Quiero algo bonito" -> CLARIFICATION, needs_clarification true,
+          next_question "Claro. ¿Qué espacio estás buscando renovar?"
+        "¿Tienen pintura?" -> UNSUPPORTED
+        """.trimIndent()
     }
 
     private fun logTokenUsage(raw: String, model: String) {
@@ -249,21 +426,5 @@ class AgentAiClient {
                 "salida=${usage.optInt("candidatesTokenCount", 0)} | " +
                 "total=${usage.optInt("totalTokenCount", 0)}"
         )
-    }
-
-    companion object {
-        private const val TAG = "AgentAiClient"
-        private const val TRACE_TAG = "AgentTrace"
-        private const val MAX_HISTORY_TURNS = 3 // pares user/model
-
-        // Cliente compartido: OkHttp reutiliza conexiones TCP/TLS entre peticiones al mismo
-        // host en vez de abrir una nueva por cada pregunta (como hacía HttpURLConnection con
-        // disconnect() forzado). Una sola instancia para toda la app.
-        private val httpClient: OkHttpClient by lazy {
-            OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(13, TimeUnit.SECONDS)
-                .build()
-        }
     }
 }

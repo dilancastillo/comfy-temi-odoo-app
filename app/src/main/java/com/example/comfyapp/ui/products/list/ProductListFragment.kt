@@ -83,7 +83,9 @@ class ProductListFragment : Fragment() {
         binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 if (dy > 0 && !recyclerView.canScrollVertically(1)) {
-                    onLoadMore?.invoke()
+                    // Se pide en el siguiente frame: si la página ya está en caché llega de
+                    // inmediato, y cambiar los datos dentro del callback de scroll no está permitido.
+                    recyclerView.post { onLoadMore?.invoke() }
                 }
             }
         })

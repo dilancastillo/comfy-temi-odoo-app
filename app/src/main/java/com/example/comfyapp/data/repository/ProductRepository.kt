@@ -341,11 +341,12 @@ object ProductRepository {
         locationName: String = "Tunja/E",
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
+        maxPrice: Double? = null,
         offset: Int = 0,
         limit: Int = 8
     ) {
         // key única para pisos y paredes
-        val cacheKey = "lava_${locationName}_${offset}_$limit"
+        val cacheKey = "lava_${locationName}_${offset}_$limit${priceKey(maxPrice)}"
         val now = System.currentTimeMillis()
 
         // Revisar cache
@@ -374,7 +375,7 @@ object ProductRepository {
         OdooHelper.executeOdooRpc(
             model = "product.product",
             method = "search_read",
-            domain = domain,
+            domain = domain + priceDomain(maxPrice),
             fields = fields,
             limit = limit,
             offset = offset,
@@ -415,11 +416,12 @@ object ProductRepository {
         locationName: String = "Tunja/E",
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
+        maxPrice: Double? = null,
         offset: Int = 0,
         limit: Int = 8
     ) {
         // key única para pisos y paredes
-        val cacheKey = "lavaP_${locationName}_${offset}_$limit"
+        val cacheKey = "lavaP_${locationName}_${offset}_$limit${priceKey(maxPrice)}"
         val now = System.currentTimeMillis()
 
         // Revisar cache
@@ -448,7 +450,7 @@ object ProductRepository {
         OdooHelper.executeOdooRpc(
             model = "product.product",
             method = "search_read",
-            domain = domain,
+            domain = domain + priceDomain(maxPrice),
             fields = fields,
             limit = limit,
             offset = offset,
@@ -489,11 +491,12 @@ object ProductRepository {
         locationName: String = "Tunja/E",
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
+        maxPrice: Double? = null,
         offset: Int = 0,
         limit: Int = 15
     ) {
         // key única para pisos y paredes
-        val cacheKey = "combo_${locationName}_${offset}_$limit"
+        val cacheKey = "combo_${locationName}_${offset}_$limit${priceKey(maxPrice)}"
         val now = System.currentTimeMillis()
 
         // Revisar cache
@@ -524,7 +527,7 @@ object ProductRepository {
         OdooHelper.executeOdooRpc(
             model = "product.product",
             method = "search_read",
-            domain = domain,
+            domain = domain + priceDomain(maxPrice),
             fields = fields,
             limit = limit,
             offset = offset,
@@ -567,11 +570,12 @@ object ProductRepository {
     fun getBathroomsWall(
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
+        maxPrice: Double? = null,
         offset: Int = 0,
         limit: Int = 15,
         order: String = "id desc"
     ) {
-        val cacheKey = "baths_wall_${offset}_${limit}_$order"
+        val cacheKey = "baths_wall_${offset}_${limit}_$order${priceKey(maxPrice)}"
         val now = System.currentTimeMillis()
         cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
 
@@ -583,7 +587,7 @@ object ProductRepository {
             listOf("free_qty", ">", 10),
             listOf("website_published", "!=", false)
         )
-        fetchProducts(domain, order, limit, offset, cacheKey, now, onSuccess, onError)
+        fetchProducts(domain + priceDomain(maxPrice), order, limit, offset, cacheKey, now, onSuccess, onError)
     }
 
     // BAÑOS — Pisos y Paredes
@@ -591,11 +595,12 @@ object ProductRepository {
     fun getBathroomsFloorAndWall(
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
+        maxPrice: Double? = null,
         offset: Int = 0,
         limit: Int = 15,
         order: String = "id desc"
     ) {
-        val cacheKey = "baths_floor_${offset}_${limit}_$order"
+        val cacheKey = "baths_floor_${offset}_${limit}_$order${priceKey(maxPrice)}"
         val now = System.currentTimeMillis()
         cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
 
@@ -607,7 +612,7 @@ object ProductRepository {
             listOf("free_qty", ">", 10),
             listOf("website_published", "!=", false)
         )
-        fetchProducts(domain, order, limit, offset, cacheKey, now, onSuccess, onError)
+        fetchProducts(domain + priceDomain(maxPrice), order, limit, offset, cacheKey, now, onSuccess, onError)
     }
 
     // -------------------------------------------------------
@@ -617,11 +622,12 @@ object ProductRepository {
     fun getSocialWall(
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
+        maxPrice: Double? = null,
         offset: Int = 0,
         limit: Int = 10,
         order: String = "id asc"
     ) {
-        val cacheKey = "social_wall_${offset}_${limit}_$order"
+        val cacheKey = "social_wall_${offset}_${limit}_$order${priceKey(maxPrice)}"
         val now = System.currentTimeMillis()
         cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
 
@@ -632,7 +638,7 @@ object ProductRepository {
             listOf("free_qty", ">", 10),
             listOf("website_published", "!=", false)
         )
-        fetchProducts(domain, order, limit, offset, cacheKey, now, onSuccess, onError)
+        fetchProducts(domain + priceDomain(maxPrice), order, limit, offset, cacheKey, now, onSuccess, onError)
     }
 
     // ZONA SOCIAL — Pisos y Paredes
@@ -640,11 +646,12 @@ object ProductRepository {
     fun getSocialFloorAndWall(
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
+        maxPrice: Double? = null,
         offset: Int = 0,
         limit: Int = 10,
         order: String = "id desc"
     ) {
-        val cacheKey = "social_floor_${offset}_${limit}_$order"
+        val cacheKey = "social_floor_${offset}_${limit}_$order${priceKey(maxPrice)}"
         val now = System.currentTimeMillis()
         cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
 
@@ -657,7 +664,7 @@ object ProductRepository {
             listOf("free_qty", ">", 10),
             listOf("website_published", "!=", false)
         )
-        fetchProducts(domain, order, limit, offset, cacheKey, now, onSuccess, onError)
+        fetchProducts(domain + priceDomain(maxPrice), order, limit, offset, cacheKey, now, onSuccess, onError)
     }
 
     // -------------------------------------------------------
@@ -667,11 +674,12 @@ object ProductRepository {
     fun getExteriorsWall(
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
+        maxPrice: Double? = null,
         offset: Int = 0,
         limit: Int = 15,
         order: String = "id desc"
     ) {
-        val cacheKey = "ext_wall_${offset}_${limit}_$order"
+        val cacheKey = "ext_wall_${offset}_${limit}_$order${priceKey(maxPrice)}"
         val now = System.currentTimeMillis()
         cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
 
@@ -684,7 +692,7 @@ object ProductRepository {
             listOf("free_qty", ">", 10),
             listOf("website_published", "!=", false)
         )
-        fetchProducts(domain, order, limit, offset, cacheKey, now, onSuccess, onError)
+        fetchProducts(domain + priceDomain(maxPrice), order, limit, offset, cacheKey, now, onSuccess, onError)
     }
 
     // EXTERIORES — Pisos y Paredes
@@ -692,11 +700,12 @@ object ProductRepository {
     fun getExteriorsFloorAndWall(
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
+        maxPrice: Double? = null,
         offset: Int = 0,
         limit: Int = 15,
         order: String = "id asc"
     ) {
-        val cacheKey = "ext_floor_${offset}_${limit}_$order"
+        val cacheKey = "ext_floor_${offset}_${limit}_$order${priceKey(maxPrice)}"
         val now = System.currentTimeMillis()
         cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
 
@@ -709,11 +718,68 @@ object ProductRepository {
             listOf("free_qty", ">", 10),
             listOf("website_published", "!=", false)
         )
-        fetchProducts(domain, order, limit, offset, cacheKey, now, onSuccess, onError)
+        fetchProducts(domain + priceDomain(maxPrice), order, limit, offset, cacheKey, now, onSuccess, onError)
     }
 
     // -------------------------------------------------------
-    // Helper interno compartido por los 6 métodos anteriores
+    // BÚSQUEDA POR TEXTO — ruta EXACT_PRODUCT del agente
+    // cada palabra de la consulta debe estar en el nombre (name ilike), con stock disponible;
+    // la ubicación de exhibición la agrega fetchProducts igual que en el resto del catálogo.
+    // Si no hay coincidencia exacta se reintenta tolerando las letras que el dictado confunde
+    // (Koral dictado como "coral"), solo en la primera página.
+    // -------------------------------------------------------
+    fun searchProductByText(
+        query: String,
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit,
+        offset: Int = 0,
+        limit: Int = 20,
+        maxPrice: Double? = null
+    ) {
+        val words = ProductSearchText.words(query)
+        if (words.isEmpty()) {
+            onSuccess(emptyList())
+            return
+        }
+        val cacheKey = "search_${words.joinToString("_")}_${offset}_$limit${priceKey(maxPrice)}"
+        val now = System.currentTimeMillis()
+        cache[cacheKey]?.let { if (now - it.timestamp < CACHE_TTL) { onSuccess(it.data); return } }
+
+        fetchProducts(nameDomain(words) + priceDomain(maxPrice), "name asc", limit, offset, cacheKey, now, { exact ->
+            if (exact.isNotEmpty() || offset > 0) {
+                onSuccess(exact)
+                return@fetchProducts
+            }
+            val patterns = words.map(ProductSearchText::odooPattern)
+            // El patrón con comodines trae de más; se pide un margen amplio y se filtra aquí.
+            fetchProducts(nameDomain(patterns) + priceDomain(maxPrice), "name asc", FUZZY_SEARCH_LIMIT, 0,
+                "${cacheKey}_fuzzy", now, { candidates ->
+                    val matched = candidates
+                        .filter { ProductSearchText.matches(it.name, words) }
+                        .take(limit)
+                    cache[cacheKey] = CacheEntry(data = matched, timestamp = now)
+                    onSuccess(matched)
+                }, onError)
+        }, onError)
+    }
+
+    private fun nameDomain(words: List<String>): List<Any> {
+        val leaves = words.map { listOf("name", "ilike", it) } +
+            listOf(listOf("free_qty", ">", 0))
+        return List(leaves.size - 1) { "&" } + leaves
+    }
+
+    private const val FUZZY_SEARCH_LIMIT = 80
+
+    // Tope de precio que pidió el cliente ("menos de 100 mil"): va en el filtro de Odoo para que
+    // la paginación siga contando páginas completas, y en la llave de caché para no mezclar listas.
+    private fun priceDomain(maxPrice: Double?): List<Any> =
+        if (maxPrice == null) emptyList() else listOf(listOf("list_price", "<=", maxPrice))
+
+    private fun priceKey(maxPrice: Double?): String = maxPrice?.let { "_max${it.toLong()}" }.orEmpty()
+
+    // -------------------------------------------------------
+    // Helper interno compartido por los métodos anteriores
     // -------------------------------------------------------
     private fun fetchProducts(
         domain: List<Any>,
@@ -767,11 +833,12 @@ object ProductRepository {
         locationName: String = "Tunja/E",
         onSuccess: (List<ModelProductStock>) -> Unit,
         onError: (String) -> Unit,
+        maxPrice: Double? = null,
         offset: Int = 0,
         limit: Int = 15
     ) {
         // key única para pisos y paredes
-        val cacheKey = "SaniOnly_${locationName}_${offset}_$limit"
+        val cacheKey = "SaniOnly_${locationName}_${offset}_$limit${priceKey(maxPrice)}"
         val now = System.currentTimeMillis()
 
         // Revisar cache
@@ -802,7 +869,7 @@ object ProductRepository {
         OdooHelper.executeOdooRpc(
             model = "product.product",
             method = "search_read",
-            domain = domain,
+            domain = domain + priceDomain(maxPrice),
             fields = fields,
             limit = limit,
             offset = offset,

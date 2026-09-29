@@ -30,7 +30,8 @@ object TemiSessionManager {
         controller?.start()
     }
 
-    fun goToLocation(location: String): Boolean = controller?.goToLocation(location) == true
+    fun goToLocation(location: String, arrivalMessage: String? = null): Boolean =
+        controller?.goToLocation(location, arrivalMessage = arrivalMessage) == true
 
     fun cancelNavigationByUser() {
         controller?.cancelNavigationByUser()

@@ -17,7 +17,13 @@ data class ProductListRequest(
     val firstColumnOrder: String = "free_qty desc",
     val secondColumnOrder: String = "free_qty desc",
     // límite total de productos por columna (0 = sin límite)
-    val maxProductsPerColumn: Int = 0
+    val maxProductsPerColumn: Int = 0,
+    // si tiene valor, el catálogo muestra los resultados de esta búsqueda por nombre en vez de la categoría
+    val searchQuery: String? = null,
+    // tope de precio pedido por el cliente; null = sin límite
+    val maxPrice: Double? = null,
+    // si tiene valor, solo se consulta esa columna (1 o 2) y sus productos llenan las dos columnas
+    val singleColumn: Int? = null
 ) : Serializable
 
 enum class ProductVideo : Serializable {

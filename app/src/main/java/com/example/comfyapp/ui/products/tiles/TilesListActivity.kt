@@ -93,7 +93,7 @@ class TilesListActivity : AppCompatActivity() {
         btnExterior.setOnClickListener {
             handleTileSelection(TileCategory.EXTERIORS)
         }
-        floatingMenu.btnHablar.setOnClickListener { openCategories() }
+        floatingMenu.btnHablar.setOnClickListener { openCategories(startAgent = true) }
     }
 
     private fun observeEffects() {
@@ -116,10 +116,11 @@ class TilesListActivity : AppCompatActivity() {
         screenInactivityHandler.removeCallbacks(screenInactivityTimeout)
     }
 
-    private fun openCategories() {
+    private fun openCategories(startAgent: Boolean = false) {
         startActivity(
             Intent(this, ProductsUserActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                putExtra(ProductsUserActivity.EXTRA_START_AGENT, startAgent)
             }
         )
     }

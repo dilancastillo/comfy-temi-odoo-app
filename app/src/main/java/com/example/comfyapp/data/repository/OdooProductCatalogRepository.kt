@@ -46,6 +46,39 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
             completeIfReady()
         }
 
+        request.searchQuery?.let { query ->
+            // Una sola consulta repartida en las dos columnas; se pide el doble para que cada
+            // columna reciba una página completa y la paginación del ViewModel siga igual.
+            ProductRepository.searchProductByText(
+                query = query,
+                onSuccess = { results ->
+                    val products = results.map { model -> model.toDomain() }
+                    onSuccess(
+                        products.filterIndexed { index, _ -> index % 2 == 0 },
+                        products.filterIndexed { index, _ -> index % 2 == 1 }
+                    )
+                },
+                onError = ::handleError,
+                offset = offset * 2,
+                limit = request.pageSize * 2,
+                maxPrice = request.maxPrice
+            )
+            return
+        }
+
+        request.singleColumn?.let { column ->
+            // Se pide el doble de esa sola columna y se reparte en las dos, igual que la búsqueda.
+            val split: (List<ModelProductStock>) -> Unit = { results ->
+                val products = results.map { model -> model.toDomain() }
+                onSuccess(
+                    products.filterIndexed { index, _ -> index % 2 == 0 },
+                    products.filterIndexed { index, _ -> index % 2 == 1 }
+                )
+            }
+            val handled = loadSingleColumn(request, column, offset * 2, request.pageSize * 2, split, ::handleError)
+            if (handled) return
+        }
+
         when (request.category) {
             ProductCategory.FLOOR_AND_WALL -> {
                 ProductRepository.getProductsAllWall(
@@ -67,6 +100,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
             }
             ProductCategory.FLOOR_AND_WALL_BATHROOMS -> {
                 ProductRepository.getBathroomsWall(
+                    maxPrice = request.maxPrice,
                     onSuccess = firstSuccess,
                     onError = ::handleError,
                     offset = offset,
@@ -74,6 +108,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     order = request.firstColumnOrder
                 )
                 ProductRepository.getBathroomsFloorAndWall(
+                    maxPrice = request.maxPrice,
                     onSuccess = secondSuccess,
                     onError = ::handleError,
                     offset = offset,
@@ -83,6 +118,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
             }
             ProductCategory.FLOOR_AND_WALL_SOCIAL -> {
                 ProductRepository.getSocialWall(
+                    maxPrice = request.maxPrice,
                     onSuccess = firstSuccess,
                     onError = ::handleError,
                     offset = offset,
@@ -90,6 +126,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     order = request.firstColumnOrder
                 )
                 ProductRepository.getSocialFloorAndWall(
+                    maxPrice = request.maxPrice,
                     onSuccess = secondSuccess,
                     onError = ::handleError,
                     offset = offset,
@@ -99,6 +136,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
             }
             ProductCategory.FLOOR_AND_WALL_EXTERIORS -> {
                 ProductRepository.getExteriorsWall(
+                    maxPrice = request.maxPrice,
                     onSuccess = firstSuccess,
                     onError = ::handleError,
                     offset = offset,
@@ -106,6 +144,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     order = request.firstColumnOrder
                 )
                 ProductRepository.getExteriorsFloorAndWall(
+                    maxPrice = request.maxPrice,
                     onSuccess = secondSuccess,
                     onError = ::handleError,
                     offset = offset,
@@ -115,6 +154,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
             }
             ProductCategory.TAPS -> {
                 ProductRepository.getProductsTapsLavaM(
+                    maxPrice = request.maxPrice,
                     locationName = DEFAULT_LOCATION,
                     onSuccess = firstSuccess,
                     onError = ::handleError,
@@ -122,6 +162,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     limit = request.pageSize
                 )
                 ProductRepository.getProductsTapsLavaP(
+                    maxPrice = request.maxPrice,
                     locationName = DEFAULT_LOCATION,
                     onSuccess = secondSuccess,
                     onError = ::handleError,
@@ -131,6 +172,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
             }
             ProductCategory.SANITARY -> {
                 ProductRepository.getProductsSanitaryCombo(
+                    maxPrice = request.maxPrice,
                     locationName = DEFAULT_LOCATION,
                     onSuccess = firstSuccess,
                     onError = ::handleError,
@@ -138,6 +180,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     limit = request.pageSize
                 )
                 ProductRepository.getProductsSanitaryOnly(
+                    maxPrice = request.maxPrice,
                     locationName = DEFAULT_LOCATION,
                     onSuccess = secondSuccess,
                     onError = ::handleError,
@@ -146,6 +189,62 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                 )
             }
         }
+    }
+
+    // Cada lista tiene dos columnas por tipo (combos/solos, lavamanos/lavaplatos, paredes/pisos,
+    // porcelanato/cerámica); FLOOR_AND_WALL general no tiene y sigue con sus dos columnas.
+    private fun loadSingleColumn(
+        request: ProductListRequest,
+        column: Int,
+        offset: Int,
+        limit: Int,
+        onSuccess: (List<ModelProductStock>) -> Unit,
+        onError: (String) -> Unit
+    ): Boolean {
+        when (request.category to column) {
+            ProductCategory.SANITARY to 1 -> ProductRepository.getProductsSanitaryCombo(
+                maxPrice = request.maxPrice, locationName = DEFAULT_LOCATION,
+                onSuccess = onSuccess, onError = onError, offset = offset, limit = limit
+            )
+            ProductCategory.SANITARY to 2 -> ProductRepository.getProductsSanitaryOnly(
+                maxPrice = request.maxPrice, locationName = DEFAULT_LOCATION,
+                onSuccess = onSuccess, onError = onError, offset = offset, limit = limit
+            )
+            ProductCategory.TAPS to 1 -> ProductRepository.getProductsTapsLavaM(
+                maxPrice = request.maxPrice, locationName = DEFAULT_LOCATION,
+                onSuccess = onSuccess, onError = onError, offset = offset, limit = limit
+            )
+            ProductCategory.TAPS to 2 -> ProductRepository.getProductsTapsLavaP(
+                maxPrice = request.maxPrice, locationName = DEFAULT_LOCATION,
+                onSuccess = onSuccess, onError = onError, offset = offset, limit = limit
+            )
+            ProductCategory.FLOOR_AND_WALL_BATHROOMS to 1 -> ProductRepository.getBathroomsWall(
+                maxPrice = request.maxPrice, onSuccess = onSuccess, onError = onError,
+                offset = offset, limit = limit, order = request.firstColumnOrder
+            )
+            ProductCategory.FLOOR_AND_WALL_BATHROOMS to 2 -> ProductRepository.getBathroomsFloorAndWall(
+                maxPrice = request.maxPrice, onSuccess = onSuccess, onError = onError,
+                offset = offset, limit = limit, order = request.secondColumnOrder
+            )
+            ProductCategory.FLOOR_AND_WALL_SOCIAL to 1 -> ProductRepository.getSocialWall(
+                maxPrice = request.maxPrice, onSuccess = onSuccess, onError = onError,
+                offset = offset, limit = limit, order = request.firstColumnOrder
+            )
+            ProductCategory.FLOOR_AND_WALL_SOCIAL to 2 -> ProductRepository.getSocialFloorAndWall(
+                maxPrice = request.maxPrice, onSuccess = onSuccess, onError = onError,
+                offset = offset, limit = limit, order = request.secondColumnOrder
+            )
+            ProductCategory.FLOOR_AND_WALL_EXTERIORS to 1 -> ProductRepository.getExteriorsWall(
+                maxPrice = request.maxPrice, onSuccess = onSuccess, onError = onError,
+                offset = offset, limit = limit, order = request.firstColumnOrder
+            )
+            ProductCategory.FLOOR_AND_WALL_EXTERIORS to 2 -> ProductRepository.getExteriorsFloorAndWall(
+                maxPrice = request.maxPrice, onSuccess = onSuccess, onError = onError,
+                offset = offset, limit = limit, order = request.secondColumnOrder
+            )
+            else -> return false
+        }
+        return true
     }
 
     private fun ModelProductStock.toDomain() = CatalogProduct(

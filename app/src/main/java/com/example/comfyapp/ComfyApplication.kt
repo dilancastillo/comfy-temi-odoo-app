@@ -2,11 +2,13 @@
 package com.example.comfyapp
 
 import android.app.Application
+import com.example.comfyapp.core.NetworkStatus
 import com.example.comfyapp.logging.PersistentLog
 
 class ComfyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         PersistentLog.initialize(this)
+        NetworkStatus.initialize(this)
     }
 }

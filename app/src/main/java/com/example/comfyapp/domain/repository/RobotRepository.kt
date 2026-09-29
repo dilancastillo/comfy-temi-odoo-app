@@ -5,7 +5,8 @@ interface RobotRepository {
     fun start()
     fun stop()
     fun speak(message: String)
-    fun goToLocation(location: String): Boolean
+    // arrivalMessage reemplaza lo que Temi dice al llegar (null = mensaje habitual del catálogo)
+    fun goToLocation(location: String, arrivalMessage: String? = null): Boolean
     fun cancelNavigationByUser()
     fun cancelNavigationForCatalogError()
     fun notifyUserInteraction()

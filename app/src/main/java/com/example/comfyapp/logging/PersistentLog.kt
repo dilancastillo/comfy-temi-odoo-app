@@ -24,7 +24,8 @@ object PersistentLog {
         "OdooTiming",
         "AgentSpeech",
         "AgentAiClient",
-        "CoverActivity"
+        "CoverActivity",
+        AssistanceEventLog.TAG
     )
     private val writer = Executors.newSingleThreadExecutor()
     private val timestampFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
