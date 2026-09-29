@@ -60,7 +60,7 @@ class ProductsViewModelsTest {
 
         val effect = viewModel.effect.value as TilesEffect.OpenProductList
         assertEquals(ProductCategory.FLOOR_AND_WALL_SOCIAL, effect.request.category)
-        assertEquals("zona social revestimiento", robot.lastLocation)
+        assertEquals("socialYexteriores", robot.lastLocation)
     }
 
     @Test

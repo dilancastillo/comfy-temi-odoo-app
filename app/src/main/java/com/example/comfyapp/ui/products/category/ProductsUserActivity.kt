@@ -57,6 +57,8 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
         private const val MAX_AGENT_ATTEMPTS = 2
         private const val LISTENING_TEXT = "Te escucho..."
         private const val THINKING_TEXT = "Pensando..."
+        private const val FINAL_ATTEMPT_TEXT =
+            "No logré entenderte. Puedes tocar una categoría en mi pantalla."
         private const val RETRY_QUESTION_TEXT =
             "No te entendí bien. ¿Qué estás buscando: sanitarios, griferías o pisos y paredes?"
         private const val AGENT_QUESTION_TEXT =
@@ -185,9 +187,9 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
         if (agentAttempt >= MAX_AGENT_ATTEMPTS) {
             agentRunning = false
             ocultarOverlay()
-            speechController.speak(
-                agentMessage.ifBlank { "No logré entenderte. Puedes tocar una categoría en mi pantalla." }
-            )
+            // Ya no se vuelve a escuchar: el mensaje de Gemini suele terminar en una
+            // pregunta ("¿me podría repetir?") que el cliente no podría responder por voz.
+            speechController.speak(FINAL_ATTEMPT_TEXT)
             return
         }
 
