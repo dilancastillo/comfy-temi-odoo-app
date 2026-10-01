@@ -9,6 +9,7 @@ import com.example.comfyapp.domain.model.AssistanceType
 import com.example.comfyapp.domain.model.ConversationStage
 import com.example.comfyapp.domain.model.CustomerContext
 import com.example.comfyapp.domain.model.IntentAnalysis
+import com.example.comfyapp.domain.repository.AnalysisRequest
 import com.example.comfyapp.domain.repository.IntentAnalyzer
 import com.example.comfyapp.domain.usecase.DescribeCustomerContextUseCase
 import com.example.comfyapp.domain.usecase.RouteAssistanceUseCase
@@ -27,6 +28,7 @@ sealed interface AssistanceEffect {
     data class AskAndListen(val question: String) : AssistanceEffect
     // decir el resumen y mostrar "Sí, correcto" / "Quiero corregir algo"
     data class Confirm(val summary: String) : AssistanceEffect
+    // context es la memoria ya aceptada; la acción usa su necesidad activa
     data class Execute(val action: AssistanceAction, val context: CustomerContext) : AssistanceEffect
     // se agotaron los intentos: decir el mensaje y cerrar la conversación
     data class GiveUp(val message: String) : AssistanceEffect
@@ -52,6 +54,10 @@ class AssistanceViewModel(
     private var listens = 0
     private var lastQuestion: String? = null
     private var pendingAction: AssistanceAction? = null
+    // la próxima respuesta corrige el borrador pendiente (se pulsó "Quiero corregir algo")
+    private var correcting = false
+    // identifica la petición vigente a Gemini: una respuesta de una petición anterior se ignora
+    private var requestId = 0L
     private var stageChangedAtMs = 0L
 
     val stage: ConversationStage get() = _state.value?.stage ?: ConversationStage.IDLE
@@ -65,7 +71,7 @@ class AssistanceViewModel(
             // dejar al agente bloqueado para siempre.
             if (clock() - stageChangedAtMs < STALE_CONVERSATION_MS) return false
             logEvent("conversation_stale_reset", listOf("stage" to stage))
-            pendingAction = null
+            abandonTurn()
         }
         if (fromDetection && session.isIdleFor(SESSION_IDLE_TIMEOUT_MS, clock())) {
             session.reset()
@@ -76,7 +82,7 @@ class AssistanceViewModel(
             analyzer.reset()
             logEvent("session_started", emptyList())
         } else {
-            session.touch()
+            session.touch(clock())
         }
         failedAttempts = 0
         listens = 0
@@ -92,8 +98,21 @@ class AssistanceViewModel(
         if (stage != ConversationStage.LISTENING) return
         listens++
         setStage(ConversationStage.ANALYZING)
-        analyzer.analyze(text, session.current(), lastQuestion) { result ->
-            if (stage != ConversationStage.ANALYZING) return@analyze
+        val thisRequest = ++requestId
+        val thisSession = session.epoch
+        val request = AnalysisRequest(
+            text = text,
+            accepted = session.current(),
+            draft = session.pending(),
+            correcting = correcting,
+            lastQuestion = lastQuestion
+        )
+        analyzer.analyze(request) { result ->
+            // Solo cuenta la respuesta de la petición vigente y del mismo cliente.
+            if (thisRequest != requestId || thisSession != session.epoch || stage != ConversationStage.ANALYZING) {
+                logEvent("intent_ignored", listOf("reason" to "stale_response"))
+                return@analyze
+            }
             result.fold(
                 onSuccess = ::handleAnalysis,
                 onFailure = { error ->
@@ -114,15 +133,19 @@ class AssistanceViewModel(
     fun onConfirmed() {
         val action = pendingAction ?: return
         if (stage != ConversationStage.CONFIRMING) return
-        session.markConfirmed()
-        logEvent("confirmation", listOf("answer" to "yes"))
+        logEvent("confirmation", listOf("answer" to "yes", "need" to session.pending()?.need?.id))
+        // Recién ahora el borrador pasa a la memoria aceptada, confirmado para esa necesidad y revisión.
+        session.commitPending(markConfirmed = true, nowMs = clock())
         execute(action)
     }
 
     fun onCorrectionRequested() {
         if (stage != ConversationStage.CONFIRMING) return
         pendingAction = null
-        logEvent("confirmation", listOf("answer" to "correct"))
+        logEvent("confirmation", listOf("answer" to "correct", "need" to session.pending()?.need?.id))
+        // Lo rechazado se queda en el borrador para corregirlo, nunca en lo aceptado ni en el historial.
+        correcting = true
+        analyzer.forgetLastTurn()
         // La corrección siempre tiene al menos una escucha, aunque ya se hayan gastado intentos.
         failedAttempts = minOf(failedAttempts, MAX_FAILED_ATTEMPTS - 1)
         listens = minOf(listens, MAX_LISTENS - 1)
@@ -131,8 +154,8 @@ class AssistanceViewModel(
 
     fun onConfirmationTimeout() {
         if (stage != ConversationStage.CONFIRMING) return
-        pendingAction = null
         logEvent("confirmation", listOf("answer" to "timeout"))
+        abandonTurn()
         finish()
     }
 
@@ -142,10 +165,11 @@ class AssistanceViewModel(
         if (followUpQuestion == null) finish() else retryOrGiveUp(followUpQuestion)
     }
 
-    // La pantalla se fue o el robot empezó a moverse: la conversación se corta sin perder el contexto.
+    // La pantalla se fue o el robot empezó a moverse: se corta la conversación; lo aceptado se
+    // conserva y el borrador sin confirmar se descarta.
     fun cancel() {
         if (stage == ConversationStage.IDLE) return
-        pendingAction = null
+        abandonTurn()
         finish()
     }
 
@@ -154,39 +178,60 @@ class AssistanceViewModel(
     }
 
     private fun handleAnalysis(analysis: IntentAnalysis) {
-        val merge = session.merge(analysis)
+        val wasCorrecting = correcting
+        correcting = false
+        val change = session.prepareChange(analysis, correcting = wasCorrecting, nowMs = clock())
+        val target = change.candidate.activeNeed
         logEvent(
             "intent_classified",
-            listOf("intent" to analysis.assistanceType) +
-                AssistanceEventLog.contextFields(merge.current).toList()
+            listOf("intent" to analysis.assistanceType, "operation" to change.operation) +
+                AssistanceEventLog.needFields(target).toList()
         )
 
+        // Se refirió a algo guardado pero no queda claro a qué: se pregunta antes de tocar la memoria.
+        if (change.ambiguousNeeds.isNotEmpty()) {
+            logEvent("need_ambiguous", listOf("options" to change.ambiguousNeeds.joinToString(",") { it.id }))
+            if (listens < MAX_LISTENS) ask(describe.askWhich(change.ambiguousNeeds)) else retryOrGiveUp(RETRY_QUESTION)
+            return
+        }
+        if (change.resumeNotFound) {
+            logEvent("need_not_found", emptyList())
+            retryOrGiveUp(RESUME_NOT_FOUND_QUESTION)
+            return
+        }
+
         // Frase sin nada útil ("eh", ruido): no hubo progreso, cuenta como intento fallido.
-        if (analysis.assistanceType == AssistanceType.CLARIFICATION && merge.changedFields.isEmpty()) {
+        if (analysis.assistanceType == AssistanceType.CLARIFICATION && change.changedFields.isEmpty()) {
+            correcting = wasCorrecting
             retryOrGiveUp(analysis.nextQuestion ?: RouteAssistanceUseCase.DEFAULT_CLARIFICATION)
             return
         }
 
         setStage(ConversationStage.ROUTING)
-        val action = route(merge.current, analysis.nextQuestion)
-        logEvent("assistance_routed", listOf("action" to action.logName()))
+        val action = route(target, analysis.assistanceType, analysis.nextQuestion)
+        logEvent("assistance_routed", listOf("action" to action.logName(), "need" to target?.id))
 
         when {
+            // Falta un dato: el borrador sigue abierto y la próxima respuesta lo completa.
             action is AssistanceAction.AskClarification -> {
                 // Si el cliente aportó datos nuevos, preguntar lo que falta es avanzar, no fallar.
-                if (merge.changedFields.isNotEmpty() && listens < MAX_LISTENS) {
+                if (change.changedFields.isNotEmpty() && listens < MAX_LISTENS) {
                     ask(action.question)
                 } else {
                     retryOrGiveUp(action.question)
                 }
             }
-            action.needsConfirmation() && !session.isConfirmed() -> {
+            action.needsConfirmation() && change.requiresConfirmation -> {
                 pendingAction = action
-                val summary = describe(merge.current, action)
+                val summary = describe(target, action, change.additionalNeeds)
                 setStage(ConversationStage.CONFIRMING, question = summary)
                 _effect.value = AssistanceEffect.Confirm(summary)
             }
-            else -> execute(action)
+            else -> {
+                // Detalle sobre una necesidad ya confirmada: se guarda sin volver a preguntar.
+                session.commitPending(markConfirmed = action.needsConfirmation(), nowMs = clock())
+                execute(action)
+            }
         }
     }
 
@@ -205,11 +250,20 @@ class AssistanceViewModel(
         failedAttempts++
         if (failedAttempts >= MAX_FAILED_ATTEMPTS || listens >= MAX_LISTENS) {
             logEvent("assistance_gave_up", listOf("listens" to listens))
+            abandonTurn()
             finish()
             _effect.value = AssistanceEffect.GiveUp(FINAL_ATTEMPT_TEXT)
             return
         }
         ask(question)
+    }
+
+    // Invalida la petición en curso y descarta el borrador sin confirmar.
+    private fun abandonTurn() {
+        requestId++
+        pendingAction = null
+        correcting = false
+        session.discardPending()
     }
 
     private fun ask(question: String) {
@@ -258,6 +312,8 @@ class AssistanceViewModel(
         const val RETRY_QUESTION =
             "No te entendí bien. ¿Qué estás buscando: sanitarios, griferías o pisos y paredes?"
         const val CORRECTION_QUESTION = "Claro, ¿qué quieres corregir?"
+        const val RESUME_NOT_FOUND_QUESTION =
+            "Eso no lo tengo anotado en esta visita. ¿Quieres que lo busquemos? Dime qué producto necesitas."
         const val FINAL_ATTEMPT_TEXT = "No logré entenderte. Puedes tocar una categoría en mi pantalla."
     }
 }

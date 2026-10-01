@@ -4,7 +4,7 @@ package com.example.comfyapp.assistance
 import com.example.comfyapp.domain.model.AssistanceAction
 import com.example.comfyapp.domain.model.AssistanceType
 import com.example.comfyapp.domain.model.CatalogDestination
-import com.example.comfyapp.domain.model.CustomerContext
+import com.example.comfyapp.domain.model.CustomerNeed
 import com.example.comfyapp.domain.model.ProductCategory
 import com.example.comfyapp.domain.usecase.RouteAssistanceUseCase
 import org.junit.Assert.assertEquals
@@ -13,12 +13,17 @@ import org.junit.Test
 
 class RouteAssistanceUseCaseTest {
 
-    private val route = RouteAssistanceUseCase()
+    private val router = RouteAssistanceUseCase()
+
+    // La frase del cliente repite el tipo de la necesidad salvo en los casos que se prueban aparte.
+    private fun route(need: CustomerNeed, nextQuestion: String? = null) =
+        router(need, need.assistanceType ?: AssistanceType.CLARIFICATION, nextQuestion)
 
     @Test
     fun `exact product searches with its query`() {
         val action = route(
-            CustomerContext(
+            CustomerNeed(
+                id = "n",
                 assistanceType = AssistanceType.EXACT_PRODUCT,
                 category = ProductCategory.SANITARY,
                 exactProductQuery = "acuacer"
@@ -31,7 +36,8 @@ class RouteAssistanceUseCaseTest {
     @Test
     fun `a named product is searched even if gemini called it a category`() {
         val action = route(
-            CustomerContext(
+            CustomerNeed(
+                id = "n",
                 assistanceType = AssistanceType.CATEGORY_BROWSE,
                 category = ProductCategory.TAPS,
                 exactProductQuery = "coral",
@@ -44,7 +50,7 @@ class RouteAssistanceUseCaseTest {
 
     @Test
     fun `exact product without query asks for it`() {
-        val action = route(CustomerContext(assistanceType = AssistanceType.EXACT_PRODUCT))
+        val action = route(CustomerNeed(id = "n", assistanceType = AssistanceType.EXACT_PRODUCT))
 
         assertEquals(AssistanceAction.AskClarification(RouteAssistanceUseCase.ASK_PRODUCT_NAME), action)
     }
@@ -52,7 +58,7 @@ class RouteAssistanceUseCaseTest {
     @Test
     fun `category browse opens the category`() {
         val action = route(
-            CustomerContext(assistanceType = AssistanceType.CATEGORY_BROWSE, category = ProductCategory.TAPS)
+            CustomerNeed(id = "n", assistanceType = AssistanceType.CATEGORY_BROWSE, category = ProductCategory.TAPS)
         )
 
         assertEquals(AssistanceAction.StartCategoryFlow(CatalogDestination.TAPS), action)
@@ -60,14 +66,14 @@ class RouteAssistanceUseCaseTest {
 
     @Test
     fun `category browse without category asks`() {
-        val action = route(CustomerContext(assistanceType = AssistanceType.CATEGORY_BROWSE))
+        val action = route(CustomerNeed(id = "n", assistanceType = AssistanceType.CATEGORY_BROWSE))
 
         assertTrue(action is AssistanceAction.AskClarification)
     }
 
     @Test
     fun `category browse with only a space asks the category for that space`() {
-        val action = route(CustomerContext(assistanceType = AssistanceType.CATEGORY_BROWSE, space = "cocina"))
+        val action = route(CustomerNeed(id = "n", assistanceType = AssistanceType.CATEGORY_BROWSE, space = "cocina"))
 
         val question = (action as AssistanceAction.AskClarification).question
         assertTrue(question.contains("para cocina"))
@@ -76,7 +82,7 @@ class RouteAssistanceUseCaseTest {
     @Test
     fun `floors without space open the space menu`() {
         val action = route(
-            CustomerContext(assistanceType = AssistanceType.CATEGORY_BROWSE, category = ProductCategory.FLOOR_AND_WALL)
+            CustomerNeed(id = "n", assistanceType = AssistanceType.CATEGORY_BROWSE, category = ProductCategory.FLOOR_AND_WALL)
         )
 
         assertEquals(AssistanceAction.StartCategoryFlow(CatalogDestination.FLOOR_ANY), action)
@@ -85,9 +91,9 @@ class RouteAssistanceUseCaseTest {
     @Test
     fun `project without category keeps talking about the space`() {
         val action = route(
-            CustomerContext(
+            CustomerNeed(
+                id = "n",
                 assistanceType = AssistanceType.PROJECT_ASSISTANCE,
-                project = "remodelación",
                 space = "baño"
             )
         )
@@ -99,7 +105,8 @@ class RouteAssistanceUseCaseTest {
     @Test
     fun `technical need with space goes straight to the right floor zone`() {
         val action = route(
-            CustomerContext(
+            CustomerNeed(
+                id = "n",
                 assistanceType = AssistanceType.TECHNICAL_NEED,
                 category = ProductCategory.FLOOR_AND_WALL,
                 space = "terraza",
@@ -113,7 +120,8 @@ class RouteAssistanceUseCaseTest {
     @Test
     fun `technical floor need without space asks only for the space`() {
         val action = route(
-            CustomerContext(
+            CustomerNeed(
+                id = "n",
                 assistanceType = AssistanceType.TECHNICAL_NEED,
                 category = ProductCategory.FLOOR_AND_WALL,
                 technicalNeeds = setOf("antideslizante")
@@ -126,7 +134,8 @@ class RouteAssistanceUseCaseTest {
     @Test
     fun `porcelain for the living room goes to social zone`() {
         val action = route(
-            CustomerContext(
+            CustomerNeed(
+                id = "n",
                 assistanceType = AssistanceType.TECHNICAL_NEED,
                 category = ProductCategory.FLOOR_AND_WALL,
                 space = "sala",
@@ -140,7 +149,7 @@ class RouteAssistanceUseCaseTest {
     @Test
     fun `location only navigates without catalog`() {
         val action = route(
-            CustomerContext(assistanceType = AssistanceType.LOCATION_ONLY, category = ProductCategory.TAPS)
+            CustomerNeed(id = "n", assistanceType = AssistanceType.LOCATION_ONLY, category = ProductCategory.TAPS)
         )
 
         assertEquals(AssistanceAction.NavigateToCategory(CatalogDestination.TAPS), action)
@@ -149,7 +158,8 @@ class RouteAssistanceUseCaseTest {
     @Test
     fun `location for an exact product uses its category`() {
         val action = route(
-            CustomerContext(
+            CustomerNeed(
+                id = "n",
                 assistanceType = AssistanceType.LOCATION_ONLY,
                 category = ProductCategory.SANITARY,
                 exactProductQuery = "acuacer"
@@ -162,7 +172,7 @@ class RouteAssistanceUseCaseTest {
     @Test
     fun `location for floors without space asks which zone`() {
         val action = route(
-            CustomerContext(assistanceType = AssistanceType.LOCATION_ONLY, category = ProductCategory.FLOOR_AND_WALL)
+            CustomerNeed(id = "n", assistanceType = AssistanceType.LOCATION_ONLY, category = ProductCategory.FLOOR_AND_WALL)
         )
 
         assertEquals(AssistanceAction.AskClarification(RouteAssistanceUseCase.ASK_WHICH_FLOOR_ZONE), action)
@@ -170,7 +180,7 @@ class RouteAssistanceUseCaseTest {
 
     @Test
     fun `location without destination asks`() {
-        val action = route(CustomerContext(assistanceType = AssistanceType.LOCATION_ONLY))
+        val action = route(CustomerNeed(id = "n", assistanceType = AssistanceType.LOCATION_ONLY))
 
         assertEquals(AssistanceAction.AskClarification(RouteAssistanceUseCase.ASK_WHICH_ZONE), action)
     }
@@ -178,7 +188,7 @@ class RouteAssistanceUseCaseTest {
     @Test
     fun `advisor wins even without category`() {
         val action = route(
-            CustomerContext(assistanceType = AssistanceType.HUMAN_ADVISOR, project = "remodelación")
+            CustomerNeed(id = "n", assistanceType = AssistanceType.HUMAN_ADVISOR)
         )
 
         assertEquals(AssistanceAction.RequestAdvisor, action)
@@ -187,7 +197,7 @@ class RouteAssistanceUseCaseTest {
     @Test
     fun `clarification uses the suggested question`() {
         val action = route(
-            CustomerContext(assistanceType = AssistanceType.CLARIFICATION),
+            CustomerNeed(id = "n", assistanceType = AssistanceType.CLARIFICATION),
             nextQuestion = "¿Qué espacio quieres renovar?"
         )
 
@@ -195,16 +205,26 @@ class RouteAssistanceUseCaseTest {
     }
 
     @Test
+    fun `advisor in this phrase wins over a saved need`() {
+        val saved = CustomerNeed(id = "n", assistanceType = AssistanceType.CATEGORY_BROWSE, category = ProductCategory.TAPS)
+
+        assertEquals(AssistanceAction.RequestAdvisor, router(saved, AssistanceType.HUMAN_ADVISOR))
+    }
+
+    @Test
     fun `just browsing and unsupported have their own exits`() {
         assertEquals(
             AssistanceAction.JustBrowsing,
-            route(CustomerContext(assistanceType = AssistanceType.JUST_BROWSING))
+            route(CustomerNeed(id = "n", assistanceType = AssistanceType.JUST_BROWSING))
         )
         assertEquals(
             AssistanceAction.Unsupported,
-            route(CustomerContext(assistanceType = AssistanceType.UNSUPPORTED))
+            route(CustomerNeed(id = "n", assistanceType = AssistanceType.UNSUPPORTED))
         )
-        assertEquals(AssistanceAction.Unsupported, route(CustomerContext()))
+        assertEquals(
+            AssistanceAction.AskClarification(RouteAssistanceUseCase.DEFAULT_CLARIFICATION),
+            router(null, AssistanceType.CLARIFICATION)
+        )
     }
 
     @Test

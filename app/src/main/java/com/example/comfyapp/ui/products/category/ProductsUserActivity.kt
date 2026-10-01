@@ -46,15 +46,19 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
         AssistanceCoordinator(robotRepository, speechController, assistanceHost)
     }
     private val assistanceHost = object : AssistanceCoordinator.Host {
+        // La lista se abre de inmediato y la frase sigue sonando en la pantalla siguiente: así nada
+        // que interrumpa la voz (otra frase, la detección) deja al cliente sin ver los productos.
         override fun openProductList(request: ProductListRequest, announcement: String?) {
-            if (announcement == null) {
+            if (request.showTravelVideo) {
                 this@ProductsUserActivity.openProductList(request)
                 return
             }
-            speechController.speak(announcement) {
-                if (!isFinishing) {
-                    startActivity(ProductListUserActivity.createIntent(this@ProductsUserActivity, request))
-                }
+            if (announcement != null) {
+                preserveSharedSpeechOnStop = true
+                speechController.speak(announcement)
+            }
+            if (!isFinishing) {
+                startActivity(ProductListUserActivity.createIntent(this@ProductsUserActivity, request))
             }
         }
 
@@ -240,7 +244,7 @@ class ProductsUserActivity : AppCompatActivity(), OnDetectionStateChangedListene
         if (action is AssistanceAction.SearchExactProduct) {
             mostrarOverlay()
             mostrarPregunta("Buscando ${action.query}...")
-        } else if (action is AssistanceAction.StartCategoryFlow && effect.context.maxPrice != null) {
+        } else if (action is AssistanceAction.StartCategoryFlow && effect.context.activeNeed?.maxPrice != null) {
             // Se consulta Odoo antes de abrir la zona para confirmar que hay productos bajo ese precio.
             mostrarOverlay()
             mostrarPregunta("Buscando opciones...")

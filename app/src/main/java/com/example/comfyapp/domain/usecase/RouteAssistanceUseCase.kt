@@ -1,18 +1,32 @@
-// decide de forma deterministica que flujo sigue segun el contexto del cliente, validando lo minimo necesario
+// decide de forma deterministica que flujo sigue segun la necesidad activa del cliente, validando lo minimo necesario
 package com.example.comfyapp.domain.usecase
 
 import com.example.comfyapp.domain.model.AssistanceAction
 import com.example.comfyapp.domain.model.AssistanceType
 import com.example.comfyapp.domain.model.CatalogDestination
-import com.example.comfyapp.domain.model.CustomerContext
+import com.example.comfyapp.domain.model.CustomerNeed
 
 class RouteAssistanceUseCase {
 
+    // need: la necesidad activa (o el borrador que se está confirmando).
+    // turnType: lo que pidió el cliente en esta frase; asesor, "solo miro" o algo que no tenemos
+    // se atienden aunque haya una necesidad guardada.
     // nextQuestion es la pregunta sugerida por Gemini; solo se usa cuando el propio router no
     // tiene una pregunta más precisa para el dato que falta.
-    operator fun invoke(context: CustomerContext, nextQuestion: String? = null): AssistanceAction {
-        val destination = CatalogDestination.from(context.category, context.space)
+    operator fun invoke(
+        need: CustomerNeed?,
+        turnType: AssistanceType,
+        nextQuestion: String? = null
+    ): AssistanceAction {
         val suggested = nextQuestion?.trim()?.takeIf { it.isNotEmpty() }
+        when (turnType) {
+            AssistanceType.HUMAN_ADVISOR -> return AssistanceAction.RequestAdvisor
+            AssistanceType.JUST_BROWSING -> return AssistanceAction.JustBrowsing
+            AssistanceType.UNSUPPORTED -> return AssistanceAction.Unsupported
+            else -> Unit
+        }
+        val context = need ?: return AssistanceAction.AskClarification(suggested ?: DEFAULT_CLARIFICATION)
+        val destination = CatalogDestination.from(context.category, context.space)
         val query = context.exactProductQuery?.trim()?.takeIf { it.isNotEmpty() }
         // Si el cliente nombró un producto concreto, se busca ese nombre aunque Gemini lo haya
         // clasificado como categoría, proyecto o necesidad técnica ("monocontrol Koral barato").
@@ -57,10 +71,10 @@ class RouteAssistanceUseCase {
 
             AssistanceType.JUST_BROWSING -> AssistanceAction.JustBrowsing
 
-            AssistanceType.CLARIFICATION ->
+            AssistanceType.CLARIFICATION, null ->
                 AssistanceAction.AskClarification(suggested ?: DEFAULT_CLARIFICATION)
 
-            AssistanceType.UNSUPPORTED, null -> AssistanceAction.Unsupported
+            AssistanceType.UNSUPPORTED -> AssistanceAction.Unsupported
         }
     }
 

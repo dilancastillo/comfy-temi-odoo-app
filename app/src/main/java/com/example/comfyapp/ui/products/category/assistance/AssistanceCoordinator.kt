@@ -16,7 +16,6 @@ import com.example.comfyapp.domain.model.ProductType
 import com.example.comfyapp.domain.model.ProductVideo
 import com.example.comfyapp.domain.repository.ProductCatalogRepository
 import com.example.comfyapp.domain.repository.RobotRepository
-import com.example.comfyapp.domain.usecase.SelectProductCategoryUseCase
 import com.example.comfyapp.logging.AssistanceEventLog
 import com.example.comfyapp.session.CustomerSessionManager
 import com.example.comfyapp.ui.products.category.ProductsUserViewModel
@@ -36,19 +35,29 @@ class AssistanceCoordinator(
         fun openTiles(category: TileCategory?)
     }
 
-    private val selectCategory = SelectProductCategoryUseCase(robotRepository)
-
     // onFinished(null) = la acción terminó; onFinished(pregunta) = hay que volver a escuchar.
     fun execute(action: AssistanceAction, context: CustomerContext, onFinished: (String?) -> Unit) {
         when (action) {
             is AssistanceAction.SearchExactProduct -> searchExactProduct(action, context, onFinished)
-            is AssistanceAction.StartCategoryFlow ->
-                openDestination(action.destination, context.maxPrice, context.productType) { onFinished(null) }
+            // Los filtros salen solo de la necesidad activa: el precio de un sanitario no se aplica a una grifería.
+            is AssistanceAction.StartCategoryFlow -> {
+                val need = context.activeNeed
+                openDestination(action.destination, need?.maxPrice, need?.productType) { onFinished(null) }
+            }
             is AssistanceAction.NavigateToCategory -> navigateOnly(action.destination, context, onFinished)
             AssistanceAction.RequestAdvisor -> {
-                // Evento preparado para el módulo de transferencia: cuando exista, recibirá este contexto.
-                CustomerSessionManager.update(context.copy(advisorRequested = true))
-                AssistanceEventLog.event("advisor_requested", *AssistanceEventLog.contextFields(context))
+                // Evento preparado para el módulo de transferencia: cuando exista, recibirá todas las
+                // necesidades aceptadas, cada una con sus propios atributos.
+                CustomerSessionManager.markAdvisorRequested()
+                AssistanceEventLog.event(
+                    "advisor_requested",
+                    "project" to context.project,
+                    "needs" to context.needs.size,
+                    "active_need" to context.activeNeedId
+                )
+                context.needs.forEach { need ->
+                    AssistanceEventLog.event("advisor_need", *AssistanceEventLog.needFields(need))
+                }
                 speech.speak(ADVISOR_TEXT) { onFinished(null) }
             }
             AssistanceAction.JustBrowsing -> speech.speak(JUST_BROWSING_TEXT) { onFinished(null) }
@@ -63,7 +72,7 @@ class AssistanceCoordinator(
         onFinished: (String?) -> Unit
     ) {
         AssistanceEventLog.event("product_search_started", "query" to action.query)
-        val maxPrice = context.maxPrice
+        val maxPrice = context.activeNeed?.maxPrice
         ProductRepository.searchProductByText(
             query = action.query,
             limit = SEARCH_PAGE_SIZE * 2,
@@ -81,13 +90,13 @@ class AssistanceCoordinator(
                 }
                 // Sin coincidencias la referencia deja de servir: se sigue por la categoría si la hay.
                 val destination = action.destination
-                CustomerSessionManager.update(
-                    context.copy(
+                CustomerSessionManager.updateActiveNeed { need ->
+                    need.copy(
                         exactProductQuery = null,
                         assistanceType = if (destination != null) AssistanceType.CATEGORY_BROWSE
                         else AssistanceType.CLARIFICATION
                     )
-                )
+                }
                 if (destination == null) {
                     onFinished("No encontré ${action.query}${priceSuffix(maxPrice)}. ¿Me dices qué tipo de producto es: sanitario, grifería o piso?")
                 } else {
@@ -117,7 +126,7 @@ class AssistanceCoordinator(
         speech.speak("Claro, acompáñame.") {
             AssistanceEventLog.event("navigation_started", "location" to location, "mode" to "location_only")
             if (robotRepository.goToLocation(location, arrivalMessage = LOCATION_ARRIVAL_TEXT)) {
-                CustomerSessionManager.update(context.copy(currentLocation = location))
+                CustomerSessionManager.setCurrentLocation(location)
             }
             onFinished(null)
         }
@@ -171,20 +180,22 @@ class AssistanceCoordinator(
         })
     }
 
+    // Primero se muestran los productos donde está Temi; el cliente decide con "Ir a verlos" si
+    // quiere que lo acompañe a la zona de exhibición.
     private fun openRequest(request: ProductListRequest) {
-        AssistanceEventLog.event("navigation_started", "location" to request.robotLocation)
-        host.openProductList(selectCategory(request))
+        AssistanceEventLog.event("catalog_shown", "location" to request.robotLocation)
+        host.openProductList(request.copy(showTravelVideo = false), CATALOG_SHOWN_TEXT)
     }
 
     private fun openDestination(destination: CatalogDestination) {
         when (destination) {
             CatalogDestination.FLOOR_ANY -> host.openTiles(null)
-            CatalogDestination.FLOOR_BATHROOMS -> host.openTiles(TileCategory.BATHROOMS)
-            CatalogDestination.FLOOR_SOCIAL -> host.openTiles(TileCategory.SOCIAL_AREAS)
-            CatalogDestination.FLOOR_EXTERIORS -> host.openTiles(TileCategory.EXTERIORS)
-            CatalogDestination.SANITARY, CatalogDestination.TAPS -> {
-                requestFor(destination)?.let(::openRequest)
-            }
+            // con la zona de pisos ya clara se muestran sus productos directamente, igual que el resto
+            CatalogDestination.FLOOR_BATHROOMS,
+            CatalogDestination.FLOOR_SOCIAL,
+            CatalogDestination.FLOOR_EXTERIORS,
+            CatalogDestination.SANITARY,
+            CatalogDestination.TAPS -> requestFor(destination)?.let(::openRequest)
         }
     }
 
@@ -197,7 +208,7 @@ class AssistanceCoordinator(
         CatalogDestination.FLOOR_ANY -> null
     }
 
-    // Los resultados se muestran donde está Temi: no hay una zona única a la cual llevar al cliente.
+    // Los resultados se muestran donde está Temi; si la categoría es clara, "Ir a verlos" lleva a su zona.
     // searchQuery conserva lo que se buscó (misma consulta y caché); el título muestra el nombre encontrado.
     private fun searchRequest(action: AssistanceAction.SearchExactProduct, foundName: String) = ProductListRequest(
         category = when (action.destination) {
@@ -208,7 +219,7 @@ class AssistanceCoordinator(
         title = "Resultados para \"$foundName\"",
         firstColumnTitle = "Opciones",
         secondColumnTitle = "Más opciones",
-        robotLocation = "",
+        robotLocation = action.destination?.let(::requestFor)?.robotLocation.orEmpty(),
         video = ProductVideo.FLOOR_AND_WALL,
         pageSize = SEARCH_PAGE_SIZE,
         showTravelVideo = false,
@@ -231,6 +242,8 @@ class AssistanceCoordinator(
 
     companion object {
         private const val SEARCH_PAGE_SIZE = 10
+        const val CATALOG_SHOWN_TEXT =
+            "Aquí tienes algunas opciones. Si quieres verlas en exhibición, toca Ir a verlos y te acompaño."
         const val LOCATION_ARRIVAL_TEXT =
             "Ya llegamos. Si quieres, también puedo ayudarte a comparar algunas opciones."
         const val ADVISOR_TEXT =

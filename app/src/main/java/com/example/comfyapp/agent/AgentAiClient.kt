@@ -5,8 +5,8 @@ import android.os.Handler
 import android.os.Looper
 import com.example.comfyapp.logging.PersistentLog as Log
 import com.example.comfyapp.BuildConfig
-import com.example.comfyapp.domain.model.CustomerContext
 import com.example.comfyapp.domain.model.IntentAnalysis
+import com.example.comfyapp.domain.repository.AnalysisRequest
 import com.example.comfyapp.domain.repository.IntentAnalyzer
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -44,24 +44,27 @@ class AgentAiClient : IntentAnalyzer {
         history.clear()
     }
 
-    override fun analyze(
-        text: String,
-        context: CustomerContext,
-        lastQuestion: String?,
-        callback: (Result<IntentAnalysis>) -> Unit
-    ) {
+    override fun forgetLastTurn() {
+        if (history.size >= 2) {
+            history.removeAt(history.lastIndex)
+            history.removeAt(history.lastIndex)
+        }
+    }
+
+    override fun analyze(request: AnalysisRequest, callback: (Result<IntentAnalysis>) -> Unit) {
+        val text = request.text
         if (BuildConfig.GEMINI_API_KEY.isBlank()) {
             callback(Result.failure(IllegalStateException("GEMINI_API_KEY no configurada")))
             return
         }
 
         val historySnapshot = history.toList()
-        // El contexto acumulado lo manda la app en cada turno: la memoria del cliente no depende
-        // del historial de Gemini, que solo ayuda a entender respuestas cortas.
+        // La memoria estructurada la manda la app en cada turno (aceptado y borrador por separado):
+        // no depende del historial de Gemini, que solo ayuda a entender respuestas cortas.
         val userTurn = buildString {
-            append("CONTEXTO ACTUAL DEL CLIENTE: ")
-            append(IntentAnalysisParser.contextToJson(context))
-            lastQuestion?.takeIf { it.isNotBlank() }?.let { append("\nTemi preguntó: ").append(it) }
+            append("MEMORIA DE LA SESIÓN: ")
+            append(IntentAnalysisParser.memoryToJson(request))
+            request.lastQuestion?.takeIf { it.isNotBlank() }?.let { append("\nTemi preguntó: ").append(it) }
             append("\nEl cliente dijo: ").append(text)
         }
 
@@ -376,14 +379,37 @@ class AgentAiClient : IntentAnalyzer {
           y natural en español de Colombia, tuteando, sin saludar, para obtener lo que falta.
         Todo campo no mencionado va en null (o lista vacía). No inventes datos.
 
-        CONTEXTO DE LA SESIÓN
-        Recibirás el CONTEXTO ACTUAL DEL CLIENTE (lo que ya se sabe) y, si existe, la última pregunta de Temi.
-        - Úsalo para entender respuestas cortas: si Temi preguntó "¿qué buscas para el baño?" y el cliente dice
-          "un sanitario", es CATEGORY_BROWSE con category SANITARY.
-        - Si el cliente solo agrega o corrige un dato ("que sea moderno", "mejor en blanco", "no tan caro"),
-          conserva el assistance_type del contexto y devuelve solo el dato nuevo.
+        MEMORIA DE LA SESIÓN
+        Recibirás la MEMORIA DE LA SESIÓN: el proyecto, la necesidad activa (el producto que se está atendiendo),
+        un resumen de las otras necesidades, el borrador pendiente y el modo (NORMAL o CORRECTING), además de la
+        última pregunta de Temi si existe.
+        - Cada necesidad es un producto distinto con sus propios atributos. Los atributos de un sanitario NO se
+          trasladan a una grifería: no repitas color, precio, estilo ni requisitos de otra necesidad.
+        - need_operation:
+          ADD_NEED: el cliente pide otro producto además del activo, aunque sea del mismo tipo ("también una
+            grifería", "otro sanitario para el baño de visitas"). Incluye siempre su category.
+          UPDATE_ACTIVE_NEED: agrega o cambia un dato del producto activo ("que sea negra", "no tan caro").
+          CORRECT_PENDING_NEED: el modo es CORRECTING; la frase corrige el pending_draft.
+          RESUME_NEED: quiere volver a un producto que ya pidió ("volvamos al sanitario", "ahora la grifería",
+            "el de visitas"). Si sabes cuál es, devuelve su id en target_need_id (solo ids de active_need u
+            other_needs; nunca inventes uno). Si hay varios posibles y no está claro, deja target_need_id en null.
+        - Si en la misma frase pide varios productos ("un sanitario y una grifería para el baño"), devuelve el
+          primero en los campos principales y los demás en additional_needs, cada uno con sus propios datos.
+          Un dato solo va en un producto si el cliente lo dijo para ese producto; "para el baño" al final de la
+          frase aplica a los productos que lo acompañan.
+        - Devuelve solo lo que el cliente dijo en esta frase. Lo no mencionado se deja en null: la app lo conserva
+          dentro de la necesidad correspondiente. Un null nunca borra nada.
+        - Para BORRAR un dato usa clear_fields ("sin límite de precio" -> clear_fields ["max_price"];
+          "cualquier color" -> ["color"]). Para quitar un requisito usa technical_needs_remove
+          ("ya no necesito que sea ahorrador" -> technical_needs_remove ["ahorrador"]).
+        - technical_needs son solo condiciones del producto (ahorrador, antideslizante, gran formato);
+          nunca nombres de productos ni de espacios.
+        - En modo CORRECTING: si corrige un dato ("mejor blanca"), devuelve solo ese dato; si corrige el producto
+          ("no es sanitario, es grifería"), devuelve la nueva categoría y los datos que repita.
+        - Usa la última pregunta de Temi para entender respuestas cortas: si preguntó "¿qué buscas para el baño?" y
+          el cliente dice "un sanitario", es CATEGORY_BROWSE con category SANITARY y need_operation UPDATE_ACTIVE_NEED.
+        - Si el cliente solo agrega o corrige un dato, conserva el assistance_type de la necesidad activa.
         - Si Temi hizo una pregunta de sí o no, interpreta el "sí" o el "no" según esa pregunta.
-        - No repitas en tu respuesta los datos del contexto que el cliente no volvió a mencionar.
 
         EJEMPLOS
         "Busco sanitario Acuacer" -> EXACT_PRODUCT, category SANITARY, exact_product_query "acuacer"
@@ -406,6 +432,17 @@ class AgentAiClient : IntentAnalyzer {
         "Busco un combo" -> CATEGORY_BROWSE, category SANITARY, product_type COMBO
         "Una llave para el lavaplatos" -> CATEGORY_BROWSE, category TAPS, product_type LAVAPLATOS
         "Solo pared para exteriores" -> CATEGORY_BROWSE, category FLOOR_AND_WALL, space "exterior", product_type PAREDES
+        "También una grifería para el baño" (activa: sanitario) -> CATEGORY_BROWSE, need_operation ADD_NEED,
+          category TAPS, space "baño" (sin los requisitos del sanitario)
+        "Ya no quiero límite de precio" -> need_operation UPDATE_ACTIVE_NEED, clear_fields ["max_price"]
+        "Ya no necesito que sea ahorrador" -> need_operation UPDATE_ACTIVE_NEED, technical_needs_remove ["ahorrador"]
+        (modo CORRECTING, borrador grifería negra) "mejor blanca" -> need_operation CORRECT_PENDING_NEED, color "blanco"
+        "Otro sanitario para el baño de visitas" (activa: sanitario baño principal) -> CATEGORY_BROWSE,
+          need_operation ADD_NEED, category SANITARY, space "baño de visitas"
+        "Volvamos al sanitario" (other_needs tiene need_01 SANITARY) -> CATEGORY_BROWSE, need_operation RESUME_NEED,
+          category SANITARY, target_need_id "need_01"
+        "Necesito un sanitario y una grifería para el baño" -> CATEGORY_BROWSE, need_operation ADD_NEED,
+          category SANITARY, space "baño", additional_needs [{category TAPS, space "baño"}]
         "Solo estoy mirando" -> JUST_BROWSING
         "Quiero algo bonito" -> CLARIFICATION, needs_clarification true,
           next_question "Claro. ¿Qué espacio estás buscando renovar?"

@@ -1,54 +1,61 @@
-// lo que la app sabe del cliente durante la sesion comercial y como se enriquece turno a turno
+// la sesion comercial del cliente: proyecto, sus necesidades por separado y cual se esta atendiendo
 package com.example.comfyapp.domain.model
 
 data class CustomerContext(
-    val assistanceType: AssistanceType? = null,
-    val category: ProductCategory? = null,
-    val productType: ProductType? = null,
-    val exactProductQuery: String? = null,
+    // proyecto y datos que el cliente declaró para toda la visita ("estoy remodelando")
     val project: String? = null,
-    val space: String? = null,
-    val style: String? = null,
-    val color: String? = null,
-    val budgetLevel: String? = null,
-    val maxPrice: Double? = null,
-    val technicalNeeds: Set<String> = emptySet(),
-    val selectedProductIds: List<Int> = emptyList(),
+    val needs: List<CustomerNeed> = emptyList(),
+    // la necesidad que se está escuchando, mostrando o modificando
+    val activeNeedId: String? = null,
+    // datos operativos de la sesión, no de un producto
     val currentLocation: String? = null,
     val advisorRequested: Boolean = false
 ) {
     val isEmpty: Boolean get() = this == CustomerContext()
 
-    // Cada respuesta enriquece la sesión: un dato nuevo reemplaza solo su propio campo y lo
-    // que el cliente ya había dicho se conserva, así no tiene que repetirlo.
-    fun mergeWith(analysis: IntentAnalysis): CustomerContext {
-        val newCategory = analysis.category ?: category
-        val categoryChanged = category != null && newCategory != category
-        return copy(
-            // Una frase que solo aclara o agrega un dato ("mejor en blanco") no borra el tipo de
-            // ayuda que ya se había identificado.
-            assistanceType = if (analysis.assistanceType == AssistanceType.CLARIFICATION && assistanceType != null) {
-                assistanceType
-            } else {
-                analysis.assistanceType
-            },
-            category = newCategory,
-            // "combo" o "lavaplatos" solo tienen sentido dentro de su propia categoría.
-            productType = (analysis.productType ?: productType.takeUnless { categoryChanged })
-                ?.takeIf { newCategory == null || it.category == newCategory },
-            // La referencia buscada pertenece a la categoría anterior; si cambia la categoría deja de aplicar.
-            exactProductQuery = analysis.exactProductQuery.clean()
-                ?: exactProductQuery.takeUnless { categoryChanged },
-            project = analysis.project.clean() ?: project,
-            space = analysis.space.clean() ?: space,
-            style = analysis.style.clean() ?: style,
-            color = analysis.color.clean() ?: color,
-            budgetLevel = analysis.budgetLevel.clean() ?: budgetLevel,
-            maxPrice = analysis.maxPrice ?: maxPrice,
-            technicalNeeds = technicalNeeds + analysis.technicalNeeds.mapNotNull { it.clean() },
-            advisorRequested = advisorRequested || analysis.assistanceType == AssistanceType.HUMAN_ADVISOR
-        )
-    }
+    val activeNeed: CustomerNeed? get() = needs.firstOrNull { it.id == activeNeedId }
 
-    private fun String?.clean(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
+    fun need(id: String): CustomerNeed? = needs.firstOrNull { it.id == id }
+
+    // Reemplaza la necesidad con ese id (o la agrega) y la deja como activa.
+    fun withActiveNeed(need: CustomerNeed): CustomerContext {
+        val updated = if (needs.any { it.id == need.id }) {
+            needs.map { if (it.id == need.id) need else it }
+        } else {
+            needs + need
+        }
+        return copy(needs = updated, activeNeedId = need.id)
+    }
+}
+
+// Lo que Temi entendió y todavía no se guardó: se confirma, se corrige o se descarta sin tocar
+// las necesidades ya aceptadas.
+data class PendingNeedChange(
+    val operation: NeedOperation,
+    // contexto aceptado + la necesidad propuesta como activa; sobre esto decide el router
+    val candidate: CustomerContext,
+    // la necesidad propuesta (null si el turno no habló de ningún producto)
+    val need: CustomerNeed?,
+    // versión aceptada de esa misma necesidad (null si es nueva)
+    val accepted: CustomerNeed?,
+    // qué cambió en este turno respecto de lo que había antes de oírlo
+    val changedFields: Set<String>,
+    // otros productos pedidos en la misma frase, guardados aparte para revisarlos después
+    val additionalNeeds: List<CustomerNeed> = emptyList(),
+    // el cliente se refirió a una necesidad guardada pero hay varias posibles: hay que preguntar cuál
+    val ambiguousNeeds: List<CustomerNeed> = emptyList(),
+    // pidió retomar algo que no está guardado en esta visita
+    val resumeNotFound: Boolean = false
+) {
+    // Ambigüedad o referencia inexistente: no se guardó nada, primero hay que aclarar.
+    val needsDisambiguation: Boolean get() = ambiguousNeeds.isNotEmpty() || resumeNotFound
+
+    // Una necesidad nueva, nunca confirmada o con un cambio importante se confirma antes de actuar.
+    val requiresConfirmation: Boolean
+        get() {
+            // Sin datos nuevos del producto se actúa sobre la activa: basta con que ya esté confirmada.
+            val proposed = need ?: return candidate.activeNeed?.isConfirmed == false
+            val previous = accepted ?: return true
+            return !previous.isConfirmed || proposed.isSignificantChangeFrom(previous)
+        }
 }

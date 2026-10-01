@@ -9,7 +9,10 @@ import com.example.comfyapp.domain.model.ConversationStage
 import com.example.comfyapp.domain.model.CustomerContext
 import com.example.comfyapp.domain.model.IntentAnalysis
 import com.example.comfyapp.domain.model.ProductCategory
+import com.example.comfyapp.domain.model.NeedOperation
 import com.example.comfyapp.domain.model.ProductType
+import com.example.comfyapp.domain.model.RequestedNeed
+import com.example.comfyapp.domain.repository.AnalysisRequest
 import com.example.comfyapp.domain.repository.IntentAnalyzer
 import com.example.comfyapp.session.CustomerSessionManager
 import com.example.comfyapp.ui.products.category.assistance.AssistanceEffect
@@ -64,7 +67,7 @@ class AssistanceViewModelTest {
 
         val execute = viewModel.effect.value as AssistanceEffect.Execute
         assertEquals(AssistanceAction.StartCategoryFlow(CatalogDestination.SANITARY), execute.action)
-        assertTrue(CustomerSessionManager.isConfirmed())
+        assertTrue(CustomerSessionManager.current().activeNeed!!.isConfirmed)
     }
 
     @Test
@@ -150,10 +153,14 @@ class AssistanceViewModelTest {
 
         val confirm = viewModel.effect.value as AssistanceEffect.Confirm
         assertEquals("Entendí que buscas sanitarios para baño. ¿Es correcto?", confirm.summary)
+        // sin confirmar todavía: el proyecto vive en el borrador, no en lo aceptado
+        assertEquals("remodelación", CustomerSessionManager.pending()?.candidate?.project)
+        assertEquals(null, CustomerSessionManager.current().project)
+        viewModel.onConfirmed()
         assertEquals("remodelación", CustomerSessionManager.current().project)
-        // Temi le pasa a Gemini lo que ya sabe y lo que preguntó
-        assertEquals("baño", analyzer.lastContext?.space)
-        assertEquals(ask.question, analyzer.lastQuestion)
+        // Temi le pasa a Gemini el borrador que se está completando y lo que preguntó
+        assertEquals("baño", analyzer.lastRequest?.draft?.need?.space)
+        assertEquals(ask.question, analyzer.lastRequest?.lastQuestion)
     }
 
     @Test
@@ -193,7 +200,7 @@ class AssistanceViewModelTest {
 
         val execute = viewModel.effect.value as AssistanceEffect.Execute
         assertEquals(AssistanceAction.StartCategoryFlow(CatalogDestination.SANITARY), execute.action)
-        assertEquals("moderno", execute.context.style)
+        assertEquals("moderno", execute.context.activeNeed?.style)
     }
 
     @Test
@@ -251,28 +258,131 @@ class AssistanceViewModelTest {
 
     @Test
     fun `talk button keeps an idle customer`() {
-        CustomerSessionManager.merge(
-            IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY),
-            nowMs = System.currentTimeMillis() - AssistanceViewModel.SESSION_IDLE_TIMEOUT_MS - 1
-        )
+        acceptOld(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY))
 
         viewModel.start(fromDetection = false)
 
-        assertEquals(ProductCategory.SANITARY, CustomerSessionManager.current().category)
+        assertEquals(ProductCategory.SANITARY, CustomerSessionManager.current().activeNeed?.category)
         assertEquals(AssistanceEffect.AskAndListen(AssistanceViewModel.FOLLOW_UP_QUESTION), viewModel.effect.value)
     }
 
     @Test
     fun `returning customer idle at centro sala starts over`() {
-        CustomerSessionManager.merge(
-            IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY),
-            nowMs = System.currentTimeMillis() - AssistanceViewModel.SESSION_IDLE_TIMEOUT_MS - 1
-        )
+        acceptOld(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY))
 
         viewModel.start(fromDetection = true)
 
         assertEquals(CustomerContext(), CustomerSessionManager.current())
         assertEquals(AssistanceEffect.AskAndListen(AssistanceViewModel.GREETING), viewModel.effect.value)
+    }
+
+    @Test
+    fun `a second product is confirmed on its own and does not inherit the first one`() {
+        talk(
+            IntentAnalysis(
+                AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY, space = "baño",
+                technicalNeeds = listOf("ahorrador"), maxPrice = 500000.0
+            )
+        )
+        viewModel.onConfirmed()
+        viewModel.onExecutionFinished()
+
+        viewModel.start(fromDetection = false)
+        answer(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.TAPS, space = "baño"))
+
+        val confirm = viewModel.effect.value as AssistanceEffect.Confirm
+        assertEquals("Entendí que buscas griferías para baño. ¿Es correcto?", confirm.summary)
+        viewModel.onConfirmed()
+        val execute = viewModel.effect.value as AssistanceEffect.Execute
+        assertEquals(ProductCategory.TAPS, execute.context.activeNeed?.category)
+        assertEquals(null, execute.context.activeNeed?.maxPrice)
+        assertEquals(2, execute.context.needs.size)
+    }
+
+    @Test
+    fun `a rejected interpretation never reaches the accepted memory`() {
+        talk(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY, space = "baño"))
+        viewModel.onCorrectionRequested()
+        assertTrue(CustomerSessionManager.current().needs.isEmpty())
+        assertEquals(1, analyzer.forgotten)
+
+        answer(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.TAPS))
+
+        assertTrue(analyzer.lastRequest!!.correcting)
+        val confirm = viewModel.effect.value as AssistanceEffect.Confirm
+        assertEquals("Entendí que buscas griferías para baño. ¿Es correcto?", confirm.summary)
+        viewModel.onConfirmed()
+        assertEquals(listOf(ProductCategory.TAPS), CustomerSessionManager.current().needs.map { it.category })
+    }
+
+    @Test
+    fun `an expired confirmation discards the draft`() {
+        talk(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY))
+        viewModel.onConfirmationTimeout()
+
+        assertTrue(CustomerSessionManager.current().needs.isEmpty())
+        assertEquals(null, CustomerSessionManager.pending())
+    }
+
+    @Test
+    fun `a late answer from an old request is ignored`() {
+        analyzer.deferred = true
+        viewModel.start(fromDetection = true)
+        viewModel.onListeningStarted()
+        viewModel.onHeard("primera frase")
+        val oldCallback = analyzer.pendingCallback!!
+        viewModel.cancel()
+
+        viewModel.start(fromDetection = false)
+        viewModel.onListeningStarted()
+        viewModel.onHeard("segunda frase")
+        oldCallback(Result.success(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY)))
+
+        assertEquals(ConversationStage.ANALYZING, viewModel.stage)
+        assertTrue("intent_ignored" in events)
+    }
+
+    @Test
+    fun `two products in one phrase confirm the first and note the second`() {
+        talk(
+            IntentAnalysis(
+                AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY, space = "baño",
+                additionalNeeds = listOf(RequestedNeed(category = ProductCategory.TAPS, space = "baño"))
+            )
+        )
+
+        val confirm = viewModel.effect.value as AssistanceEffect.Confirm
+        assertEquals(
+            "Entendí que buscas sanitarios para baño. También anoté griferías para baño para revisarlo después. ¿Es correcto?",
+            confirm.summary
+        )
+    }
+
+    @Test
+    fun `an unclear reference asks which saved need`() {
+        talk(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY, space = "baño principal"))
+        viewModel.onConfirmed(); viewModel.onExecutionFinished()
+        viewModel.start(fromDetection = false)
+        answer(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, needOperation = NeedOperation.ADD_NEED, space = "baño de visitas"))
+        viewModel.onConfirmed(); viewModel.onExecutionFinished()
+        viewModel.start(fromDetection = false)
+        answer(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.TAPS))
+        viewModel.onConfirmed(); viewModel.onExecutionFinished()
+
+        viewModel.start(fromDetection = false)
+        answer(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, needOperation = NeedOperation.RESUME_NEED, category = ProductCategory.SANITARY))
+
+        val ask = viewModel.effect.value as AssistanceEffect.AskAndListen
+        assertEquals(
+            "Tengo anotados varios. ¿Te refieres a sanitarios para baño principal o a sanitarios para baño de visitas?",
+            ask.question
+        )
+    }
+
+    private fun acceptOld(analysis: IntentAnalysis) {
+        val old = System.currentTimeMillis() - AssistanceViewModel.SESSION_IDLE_TIMEOUT_MS - 1
+        CustomerSessionManager.prepareChange(analysis, nowMs = old)
+        CustomerSessionManager.commitPending(markConfirmed = true, nowMs = old)
     }
 
     private fun talk(analysis: IntentAnalysis) {
@@ -290,18 +400,19 @@ class AssistanceViewModelTest {
 private class FakeIntentAnalyzer : IntentAnalyzer {
     var next: Result<IntentAnalysis> = Result.failure(IllegalStateException("sin respuesta"))
     var resets = 0
-    var lastContext: CustomerContext? = null
-    var lastQuestion: String? = null
+    var forgotten = 0
+    var lastRequest: AnalysisRequest? = null
+    // si es true la respuesta no llega sola: la prueba decide cuándo (y si) llamar al callback
+    var deferred = false
+    var pendingCallback: ((Result<IntentAnalysis>) -> Unit)? = null
 
-    override fun analyze(
-        text: String,
-        context: CustomerContext,
-        lastQuestion: String?,
-        callback: (Result<IntentAnalysis>) -> Unit
-    ) {
-        lastContext = context
-        this.lastQuestion = lastQuestion
-        callback(next)
+    override fun analyze(request: AnalysisRequest, callback: (Result<IntentAnalysis>) -> Unit) {
+        lastRequest = request
+        if (deferred) pendingCallback = callback else callback(next)
+    }
+
+    override fun forgetLastTurn() {
+        forgotten++
     }
 
     override fun reset() {

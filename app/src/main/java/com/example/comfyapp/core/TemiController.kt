@@ -51,7 +51,7 @@ class TemiController(
         private const val TAG = "TemiController"
         private const val INACTIVITY_TIMEOUT = 40 * 1000L
         // ubicación del mapa a la que Temi vuelve por inactividad (en la tienda es "centro sala")
-        private const val HOME_LOCATION = "andres"
+        private const val HOME_LOCATION = "centro sala"
     }
 
     fun start() {

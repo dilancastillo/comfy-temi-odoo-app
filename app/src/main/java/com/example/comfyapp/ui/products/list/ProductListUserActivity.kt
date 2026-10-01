@@ -36,7 +36,25 @@ class ProductListUserActivity : AppCompatActivity() {
     private val secondColumnFragment = ProductListFragment.newInstance()
     private val robotRepository by lazy { TemiRobotRepository(applicationContext) }
     private val inactivityNavigator by lazy { RobotInactivityNavigator(this) }
-    private val navigationFailureListener: () -> Unit = { closeVideoOverlay() }
+    // Si la navegación se interrumpe (falla o el cliente la detiene) se vuelve a ofrecer "Ir a verlos".
+    private val navigationFailureListener: () -> Unit = {
+        closeVideoOverlay()
+        updateGoToButton(travelling = false)
+    }
+    private var travelling = false
+    // Temi dejó de caminar sin llegar (la detuvieron tocando la pantalla, por ejemplo): tras un
+    // momento, por si el aviso de llegada aún no se procesó, se cierra el video y se ofrece el botón.
+    private val navigationStateListener: (Boolean) -> Unit = { isNavigating ->
+        if (!isNavigating && travelling) {
+            binding.root.postDelayed({
+                if (travelling && !arrivedAtProducts && !robotRepository.isNavigationInProgress()) {
+                    travelling = false
+                    closeVideoOverlay()
+                    updateGoToButton(travelling = false)
+                }
+            }, NAVIGATION_SETTLE_MS)
+        }
+    }
     private var screenEnteredAtMs = 0L
     private var requestedRobotLocation: String? = null
     private val catalogErrorHandler = Handler(Looper.getMainLooper())
@@ -75,6 +93,8 @@ class ProductListUserActivity : AppCompatActivity() {
         )[ProductListViewModel::class.java]
 
         renderConfiguration(request)
+        travelling = request.showTravelVideo
+        updateGoToButton(travelling)
         setupProductColumns()
         bindActions()
         observeViewModel()
@@ -93,6 +113,7 @@ class ProductListUserActivity : AppCompatActivity() {
         super.onStart()
         inactivityNavigator.start()
         TemiSessionManager.addNavigationFailureListener(navigationFailureListener)
+        TemiSessionManager.addNavigationStateListener(navigationStateListener)
         robotRepository.start()
         if (useStationaryScreenTimeout) scheduleStationaryScreenTimeout()
     }
@@ -107,6 +128,7 @@ class ProductListUserActivity : AppCompatActivity() {
         cancelStationaryScreenTimeout()
         inactivityNavigator.stop()
         TemiSessionManager.removeNavigationFailureListener(navigationFailureListener)
+        TemiSessionManager.removeNavigationStateListener(navigationStateListener)
         robotRepository.stop()
         super.onStop()
     }
@@ -143,6 +165,7 @@ class ProductListUserActivity : AppCompatActivity() {
             cancelCatalogErrorTimeout()
             openCategories("back_to_categories_button")
         }
+        binding.btnGoToProducts.setOnClickListener { goToProducts() }
         binding.floatingMenu.btnHablar.setOnClickListener {
             openCategories("btn_hablar", startAgent = true)
         }
@@ -200,8 +223,32 @@ class ProductListUserActivity : AppCompatActivity() {
         LocationEventManager.locationArrived.observe(this) { location ->
             if (location.equals(requestedRobotLocation, ignoreCase = true)) {
                 closeVideoOverlay()
+                travelling = false
+                arrivedAtProducts = true
+                updateGoToButton(travelling = false)
             }
         }
+    }
+
+    private var arrivedAtProducts = false
+
+    // El botón solo tiene sentido si la lista tiene una zona y Temi no está yendo ni ya llegó allí.
+    private fun updateGoToButton(travelling: Boolean) {
+        val canGo = !requestedRobotLocation.isNullOrBlank() && !travelling && !arrivedAtProducts
+        binding.btnGoToProducts.visibility = if (canGo) View.VISIBLE else View.GONE
+    }
+
+    private fun goToProducts() {
+        val location = requestedRobotLocation?.takeIf { it.isNotBlank() } ?: return
+        val request = readRequest() ?: return
+        Log.i(TAG, "go_to_products location=$location")
+        if (!robotRepository.goToLocation(location, arrivalMessage = PRODUCTS_ARRIVAL_TEXT)) return
+        travelling = true
+        // Ya camina hacia la zona: la pantalla no debe volver sola a categorías por estar quieta.
+        useStationaryScreenTimeout = false
+        cancelStationaryScreenTimeout()
+        updateGoToButton(travelling = true)
+        showVideoOverlay(request.video.toRawResource())
     }
 
     private fun List<CatalogProduct>.toProducts() = map {
@@ -291,6 +338,9 @@ class ProductListUserActivity : AppCompatActivity() {
         private const val EXTRA_REQUEST = "product_list_request"
         private const val CATALOG_ERROR_TIMEOUT_MS = 60_000L
         private const val STATIONARY_SCREEN_TIMEOUT_MS = 60_000L
+        private const val NAVIGATION_SETTLE_MS = 1_000L
+        private const val PRODUCTS_ARRIVAL_TEXT =
+            "Llegamos. En esta zona puedes ver los productos que te estoy mostrando en pantalla, junto con otros diseños."
 
         fun createIntent(context: Context, request: ProductListRequest) =
             Intent(context, ProductListUserActivity::class.java).apply {

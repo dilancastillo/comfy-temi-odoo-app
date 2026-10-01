@@ -4,6 +4,11 @@ package com.example.comfyapp.assistance
 import com.example.comfyapp.agent.IntentAnalysisParser
 import com.example.comfyapp.domain.model.AssistanceType
 import com.example.comfyapp.domain.model.CustomerContext
+import com.example.comfyapp.domain.model.CustomerNeed
+import com.example.comfyapp.domain.model.NeedField
+import com.example.comfyapp.domain.model.NeedOperation
+import com.example.comfyapp.domain.model.PendingNeedChange
+import com.example.comfyapp.domain.repository.AnalysisRequest
 import com.example.comfyapp.domain.model.ProductCategory
 import com.example.comfyapp.domain.model.ProductType
 import org.junit.Assert.assertEquals
@@ -85,16 +90,42 @@ class IntentAnalysisParserTest {
     }
 
     @Test
-    fun `context is sent with its structured fields`() {
-        val json = IntentAnalysisParser.contextToJson(
-            CustomerContext(
-                assistanceType = AssistanceType.CATEGORY_BROWSE,
-                category = ProductCategory.SANITARY,
-                space = "baño"
+    fun `memory sends accepted needs apart from the pending draft`() {
+        val sanitary = CustomerNeed(
+            id = "need_01", assistanceType = AssistanceType.CATEGORY_BROWSE,
+            category = ProductCategory.SANITARY, space = "baño", technicalNeeds = setOf("ahorrador")
+        )
+        val taps = CustomerNeed(id = "need_02", category = ProductCategory.TAPS, space = "baño")
+        val json = IntentAnalysisParser.memoryToJson(
+            AnalysisRequest(
+                text = "mejor blanca",
+                accepted = CustomerContext(needs = listOf(sanitary), activeNeedId = "need_01"),
+                draft = PendingNeedChange(
+                    operation = NeedOperation.ADD_NEED,
+                    candidate = CustomerContext(needs = listOf(sanitary, taps), activeNeedId = "need_02"),
+                    need = taps,
+                    accepted = null,
+                    changedFields = setOf("category")
+                ),
+                correcting = true,
+                lastQuestion = null
             )
         )
 
-        assertTrue(json.contains("\"category\":\"SANITARY\""))
-        assertTrue(json.contains("\"space\":\"baño\""))
+        assertTrue(json.contains("\"mode\":\"CORRECTING\""))
+        assertTrue(json.contains("\"active_need\":{\"id\":\"need_01\""))
+        assertTrue(json.contains("\"pending_draft\":{\"id\":\"need_02\""))
+    }
+
+    @Test
+    fun `memory operation and clear fields are parsed`() {
+        val analysis = IntentAnalysisParser.parse(
+            """{"assistance_type":"CATEGORY_BROWSE","need_operation":"UPDATE_ACTIVE_NEED",
+               "clear_fields":["max_price","volumen"],"technical_needs_remove":["ahorrador"]}"""
+        )
+
+        assertEquals(NeedOperation.UPDATE_ACTIVE_NEED, analysis.needOperation)
+        assertEquals(setOf(NeedField.MAX_PRICE), analysis.clearFields)
+        assertEquals(listOf("ahorrador"), analysis.technicalNeedsRemove)
     }
 }

@@ -172,6 +172,30 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintVertical_bias="0.5"
         android:layout_marginEnd="24dp"/>
+
+    <!-- Lleva al cliente a la zona de exhibición de los productos que está viendo -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnGoToProducts"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:paddingStart="36dp"
+        android:paddingEnd="36dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:text="Ir a verlos"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        android:elevation="8dp"
+        app:backgroundTint="@color/primary"
+        app:cornerRadius="32dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <FrameLayout
         android:id="@+id/videoOverlayContainer"
         android:layout_width="match_parent"
