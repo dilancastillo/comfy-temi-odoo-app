@@ -33,7 +33,7 @@ class TilesViewModel(
     fun onAction(action: TilesAction) {
         when (action) {
             is TilesAction.Select -> {
-                val request = requestFor(action.category)
+                val request = action.filters.applyTo(requestFor(action.category))
                 _effect.value = TilesEffect.OpenProductList(
                     selectCategory(request)
                 )

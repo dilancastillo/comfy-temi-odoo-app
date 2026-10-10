@@ -1,13 +1,20 @@
 // muestra los ambientes de pisos y paredes y ejecuta su navegacion
 package com.example.comfyapp.ui.products.tiles
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
+import com.example.comfyapp.data.repository.OdooProductCatalogRepository
+import com.example.comfyapp.domain.model.ProductFilters
+import com.example.comfyapp.domain.model.ProductType
+import com.example.comfyapp.logging.AssistanceEventLog
 import com.example.comfyapp.ui.products.list.ProductListUserActivity
+import com.example.comfyapp.CoverActivity
+import com.example.comfyapp.ui.TalkHint
 import com.example.comfyapp.ui.products.category.ProductsUserActivity
 import com.example.comfyapp.databinding.ActivityTilesListBinding
 import com.example.comfyapp.agent.AgentSpeechController
@@ -24,6 +31,17 @@ class TilesListActivity : AppCompatActivity() {
     private val screenInactivityTimeout = Runnable { openCategories() }
     private val speechController = AgentSpeechController.shared
     private var waitingToOpenProductList = false
+    private val catalog by lazy { OdooProductCatalogRepository() }
+    // precio y color que pidió el cliente al hablar con Temi; vacío si llegó tocando la pantalla
+    private val filters by lazy {
+        ProductFilters(
+            maxPrice = intent.getDoubleExtra(EXTRA_MAX_PRICE, -1.0).takeIf { it > 0 },
+            color = intent.getStringExtra(EXTRA_COLOR),
+            productType = intent.getStringExtra(EXTRA_PRODUCT_TYPE)
+                ?.let { name -> runCatching { ProductType.valueOf(name) }.getOrNull() }
+        )
+    }
+    private var checkingFilters = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +65,7 @@ class TilesListActivity : AppCompatActivity() {
                 runCatching { TileCategory.valueOf(it) }.getOrNull()
             }
             if (preselected != null) {
-                viewModel.onAction(TilesAction.Select(preselected))
+                viewModel.onAction(TilesAction.Select(preselected, filters))
             } else {
                 viewModel.announceScreen()
             }
@@ -93,6 +111,7 @@ class TilesListActivity : AppCompatActivity() {
         btnExterior.setOnClickListener {
             handleTileSelection(TileCategory.EXTERIORS)
         }
+        TalkHint.attach(floatingMenu.tvTalkHint)
         floatingMenu.btnHablar.setOnClickListener { openCategories(startAgent = true) }
     }
 
@@ -117,10 +136,14 @@ class TilesListActivity : AppCompatActivity() {
     }
 
     private fun openCategories(startAgent: Boolean = false) {
+        // "Hablar con Temi" vuelve a la pantalla principal, donde Temi conversa.
+        if (startAgent) {
+            startActivity(CoverActivity.talkIntent(this))
+            return
+        }
         startActivity(
             Intent(this, ProductsUserActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                putExtra(ProductsUserActivity.EXTRA_START_AGENT, startAgent)
             }
         )
     }
@@ -149,7 +172,38 @@ class TilesListActivity : AppCompatActivity() {
             cancelPendingProductLaunch()
             return
         }
-        viewModel.onAction(TilesAction.Select(category))
+        // Sin precio ni color no hay nada que consultar: el tipo pedido ("pisos") se aplica directo.
+        if (!filters.hasLimits) {
+            viewModel.onAction(TilesAction.Select(category, filters))
+            return
+        }
+        if (checkingFilters) return
+        // Se consulta antes de abrir: si en ese ambiente no hay nada del color o precio pedido,
+        // Temi lo dice y muestra todo, en vez de abrir una lista vacía.
+        checkingFilters = true
+        val base = TilesViewModel.requestFor(category)
+        catalog.load(filters.applyTo(base), 0, onSuccess = { first, second ->
+            checkingFilters = false
+            AssistanceEventLog.event(
+                "filter_checked",
+                "location" to base.robotLocation,
+                "max_price" to filters.maxPrice?.toLong(),
+                "color" to filters.color,
+                "results" to first.size + second.size
+            )
+            if (first.isEmpty() && second.isEmpty()) {
+                speechController.speak(
+                    "No tengo ${base.title.lowercase()}${filters.suffix()} en exhibición, " +
+                        "pero te muestro todas las opciones."
+                ) { if (!isFinishing) viewModel.onAction(TilesAction.Select(category, filters.withoutLimits())) }
+            } else {
+                viewModel.onAction(TilesAction.Select(category, filters))
+            }
+        }, onError = {
+            // Si la consulta falla se abre sin filtros y la lista maneja su propio error.
+            checkingFilters = false
+            viewModel.onAction(TilesAction.Select(category, filters.withoutLimits()))
+        })
     }
 
     private fun cancelPendingProductLaunch() {
@@ -161,6 +215,17 @@ class TilesListActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_CATEGORY = "extra_tile_category"
+        private const val EXTRA_MAX_PRICE = "extra_max_price"
+        private const val EXTRA_COLOR = "extra_color"
+        private const val EXTRA_PRODUCT_TYPE = "extra_product_type"
+
+        fun createIntent(context: Context, category: TileCategory?, filters: ProductFilters): Intent =
+            Intent(context, TilesListActivity::class.java).apply {
+                category?.let { putExtra(EXTRA_CATEGORY, it.name) }
+                filters.maxPrice?.let { putExtra(EXTRA_MAX_PRICE, it) }
+                filters.color?.let { putExtra(EXTRA_COLOR, it) }
+                filters.productType?.let { putExtra(EXTRA_PRODUCT_TYPE, it.name) }
+            }
         private const val SCREEN_INACTIVITY_TIMEOUT_MS = 60_000L
     }
 }

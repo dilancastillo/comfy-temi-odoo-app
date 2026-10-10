@@ -43,6 +43,9 @@ android {
         buildConfigField("String", "SHEETS_LOG_URL",      "\"${localProps.getProperty("SHEETS_LOG_URL", "")}\"")
         // false = vuelve al flujo anterior del agente (Gemini escoge la pantalla directamente)
         buildConfigField("boolean", "ASSISTANCE_ROUTER_V2", localProps.getProperty("ASSISTANCE_ROUTER_V2", "true"))
+        // Asesoras a las que Temi avisa con una llamada, en orden (nombres como están en los contactos de Temi, separados por coma)
+        buildConfigField("String", "ADVISOR_CONTACTS",   "\"${localProps.getProperty("ADVISOR_CONTACTS", "")}\"")
+        buildConfigField("int",    "ADVISOR_RING_SECONDS", localProps.getProperty("ADVISOR_RING_SECONDS", "10"))
 
     }
 

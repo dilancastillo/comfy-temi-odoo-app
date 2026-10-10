@@ -1,7 +1,11 @@
 // ejecuta la accion decidida por el enrutador: consultar odoo, abrir la zona, mover a temi o pedir asesor
 package com.example.comfyapp.ui.products.category.assistance
 
+import android.os.Handler
+import android.os.Looper
 import com.example.comfyapp.agent.AgentSpeechController
+import com.example.comfyapp.core.AdvisorCallNotifier
+import com.example.comfyapp.core.TemiAdvisorCalls
 import com.example.comfyapp.data.repository.OdooProductCatalogRepository
 import com.example.comfyapp.data.repository.ProductRepository
 import com.example.comfyapp.data.repository.ProductSearchText
@@ -9,8 +13,8 @@ import com.example.comfyapp.domain.model.AssistanceAction
 import com.example.comfyapp.domain.model.AssistanceType
 import com.example.comfyapp.domain.model.CatalogDestination
 import com.example.comfyapp.domain.model.CustomerContext
-import com.example.comfyapp.domain.model.PriceFormatter
 import com.example.comfyapp.domain.model.ProductCategory
+import com.example.comfyapp.domain.model.ProductFilters
 import com.example.comfyapp.domain.model.ProductListRequest
 import com.example.comfyapp.domain.model.ProductType
 import com.example.comfyapp.domain.model.ProductVideo
@@ -26,13 +30,23 @@ class AssistanceCoordinator(
     private val robotRepository: RobotRepository,
     private val speech: AgentSpeechController,
     private val host: Host,
-    private val catalog: ProductCatalogRepository = OdooProductCatalogRepository()
+    private val catalog: ProductCatalogRepository = OdooProductCatalogRepository(),
+    // null = sin asesoras configuradas: Temi solo dice que la atenderán, como antes.
+    private val advisorCalls: AdvisorCallNotifier? =
+        if (TemiAdvisorCalls.isEnabled) TemiAdvisorCalls.notifier else null
 ) {
+
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     // Lo que depende de la Activity: abrir pantallas sin cortar lo que Temi está diciendo.
     interface Host {
         fun openProductList(request: ProductListRequest, announcement: String? = null)
-        fun openTiles(category: TileCategory?)
+        // filters: precio y color pedidos; se aplican cuando el cliente toque un ambiente
+        fun openTiles(category: TileCategory?, filters: ProductFilters = ProductFilters())
+        // La llamada de aviso tapa la app; al terminar se vuelve a la pantalla del cliente.
+        fun returnToScreen()
+        // true mientras dura el aviso a la asesora: la pantalla apaga la detección de personas.
+        fun onAdvisorFlowChanged(active: Boolean)
     }
 
     // onFinished(null) = la acción terminó; onFinished(pregunta) = hay que volver a escuchar.
@@ -42,7 +56,9 @@ class AssistanceCoordinator(
             // Los filtros salen solo de la necesidad activa: el precio de un sanitario no se aplica a una grifería.
             is AssistanceAction.StartCategoryFlow -> {
                 val need = context.activeNeed
-                openDestination(action.destination, need?.maxPrice, need?.productType) { onFinished(null) }
+                openDestination(action.destination, ProductFilters(need?.maxPrice, need?.color), need?.productType) {
+                    onFinished(null)
+                }
             }
             is AssistanceAction.NavigateToCategory -> navigateOnly(action.destination, context, onFinished)
             AssistanceAction.RequestAdvisor -> {
@@ -58,11 +74,44 @@ class AssistanceCoordinator(
                 context.needs.forEach { need ->
                     AssistanceEventLog.event("advisor_need", *AssistanceEventLog.needFields(need))
                 }
-                speech.speak(ADVISOR_TEXT) { onFinished(null) }
+                requestAdvisor(onFinished)
             }
             AssistanceAction.JustBrowsing -> speech.speak(JUST_BROWSING_TEXT) { onFinished(null) }
             AssistanceAction.Unsupported -> onFinished(UNSUPPORTED_QUESTION)
             is AssistanceAction.AskClarification -> onFinished(action.question)
+        }
+    }
+
+    // El cliente no participa en la llamada: Temi le avisa que va a llamar, la conversación termina
+    // y el resultado (quién viene o que nadie contestó) se le dice al volver a la pantalla.
+    private fun requestAdvisor(onFinished: (String?) -> Unit) {
+        val calls = advisorCalls
+        if (calls == null) {
+            speech.speak(ADVISOR_TEXT) { onFinished(null) }
+            return
+        }
+        if (calls.isBusy) {
+            speech.speak(ADVISOR_ALREADY_CALLING_TEXT) { onFinished(null) }
+            return
+        }
+        // Desde aquí hasta decir el resultado nadie más puede iniciar una conversación.
+        TemiAdvisorCalls.beginFlow()
+        host.onAdvisorFlowChanged(true)
+        speech.speak(ADVISOR_CALLING_TEXT) {
+            onFinished(null)
+            // Cada intento cuenta como actividad: Temi no se devuelve a Centro Sala mientras avisa.
+            calls.notify(onAttempt = { robotRepository.notifyUserInteraction() }) { result ->
+                AssistanceEventLog.event("advisor_call_result", "result" to result::class.simpleName)
+                host.returnToScreen()
+                robotRepository.notifyUserInteraction()
+                // Pausa para que la pantalla de la llamada se cierre antes de hablarle al cliente.
+                mainHandler.postDelayed({
+                    speech.speak(advisorResultText(result)) {
+                        TemiAdvisorCalls.endFlow()
+                        host.onAdvisorFlowChanged(false)
+                    }
+                }, RESULT_SPEECH_DELAY_MS)
+            }
         }
     }
 
@@ -72,18 +121,19 @@ class AssistanceCoordinator(
         onFinished: (String?) -> Unit
     ) {
         AssistanceEventLog.event("product_search_started", "query" to action.query)
-        val maxPrice = context.activeNeed?.maxPrice
+        val filters = ProductFilters(context.activeNeed?.maxPrice, context.activeNeed?.color)
         ProductRepository.searchProductByText(
             query = action.query,
             limit = SEARCH_PAGE_SIZE * 2,
-            maxPrice = maxPrice,
+            maxPrice = filters.maxPrice,
+            color = filters.color,
             onSuccess = { results ->
                 AssistanceEventLog.event("product_search_finished", "results" to results.size)
                 if (results.isNotEmpty()) {
                     val foundName = ProductSearchText.displayQuery(results.first().name, action.query)
                     host.openProductList(
-                        searchRequest(action, foundName).withMaxPrice(maxPrice),
-                        "Encontré estas opciones para $foundName${priceSuffix(maxPrice)}."
+                        searchRequest(action, foundName).withFilters(filters),
+                        "Encontré estas opciones para $foundName${filters.suffix()}."
                     )
                     onFinished(null)
                     return@searchProductByText
@@ -98,10 +148,10 @@ class AssistanceCoordinator(
                     )
                 }
                 if (destination == null) {
-                    onFinished("No encontré ${action.query}${priceSuffix(maxPrice)}. ¿Me dices qué tipo de producto es: sanitario, grifería o piso?")
+                    onFinished("No encontré ${action.query}${filters.suffix()}. ¿Me dices qué tipo de producto es: sanitario, grifería o piso?")
                 } else {
-                    speech.speak("No encontré ${action.query}${priceSuffix(maxPrice)} en exhibición, pero te muestro lo que tenemos en ${destination.displayName}.") {
-                        openDestination(destination, maxPrice) { onFinished(null) }
+                    speech.speak("No encontré ${action.query}${filters.suffix()} en exhibición, pero te muestro lo que tenemos en ${destination.displayName}.") {
+                        openDestination(destination, filters) { onFinished(null) }
                     }
                 }
             },
@@ -132,41 +182,48 @@ class AssistanceCoordinator(
         }
     }
 
-    // Con tope de precio se consulta primero: si no hay nada bajo ese precio Temi lo dice y muestra
+    // Con precio o color se consulta primero: si no hay nada que cumpla, Temi lo dice y muestra
     // la zona completa, en vez de abrir una lista vacía. La lista luego reutiliza lo consultado.
     private fun openDestination(
         destination: CatalogDestination,
-        maxPrice: Double?,
+        filters: ProductFilters,
         productType: ProductType? = null,
         onOpened: () -> Unit
     ) {
+        // "Pisos y paredes" sin ambiente: el cliente lo escoge en pantalla y ahí se aplican los filtros.
+        if (destination == CatalogDestination.FLOOR_ANY) {
+            host.openTiles(null, filters.copy(productType = productType))
+            onOpened()
+            return
+        }
         val base = requestFor(destination)
         val request = base?.withProductType(productType)
-        // Sin tope ni tipo se abre como siempre (pisos pasan por la pantalla de ambientes).
-        if (base == null || request == null || (maxPrice == null && request == base)) {
+        // Sin filtros ni tipo se abre como siempre (pisos pasan por la pantalla de ambientes).
+        if (base == null || request == null || (filters.isEmpty && request == base)) {
             openDestination(destination)
             onOpened()
             return
         }
-        if (maxPrice == null) {
+        if (filters.isEmpty) {
             openRequest(request)
             onOpened()
             return
         }
-        val limited = request.withMaxPrice(maxPrice)
+        val limited = request.withFilters(filters)
         catalog.load(limited, 0, onSuccess = { first, second ->
             AssistanceEventLog.event(
-                "price_filter_checked",
+                "filter_checked",
                 "location" to request.robotLocation,
-                "max_price" to maxPrice.toLong(),
+                "max_price" to filters.maxPrice?.toLong(),
+                "color" to filters.color,
                 "results" to first.size + second.size
             )
             if (first.isEmpty() && second.isEmpty()) {
                 speech.speak(
-                    "No tengo ${destination.displayName}${priceSuffix(maxPrice)} en exhibición, " +
+                    "No tengo ${destination.displayName}${filters.suffix()} en exhibición, " +
                         "pero te muestro todas las opciones."
                 ) {
-                    openDestination(destination)
+                    openWithoutFilters(destination, base, request)
                     onOpened()
                 }
             } else {
@@ -174,10 +231,15 @@ class AssistanceCoordinator(
                 onOpened()
             }
         }, onError = {
-            // Si la consulta previa falla, se abre la zona sin tope y la lista maneja su propio error.
-            openDestination(destination)
+            // Si la consulta previa falla, se abre sin filtros y la lista maneja su propio error.
+            openWithoutFilters(destination, base, request)
             onOpened()
         })
+    }
+
+    // Se quitan precio y color, pero no lo que pidió ("pisos" sigue mostrando solo pisos).
+    private fun openWithoutFilters(destination: CatalogDestination, base: ProductListRequest, request: ProductListRequest) {
+        if (request == base) openDestination(destination) else openRequest(request)
     }
 
     // Primero se muestran los productos donde está Temi; el cliente decide con "Ir a verlos" si
@@ -228,26 +290,35 @@ class AssistanceCoordinator(
 
     // "Un combo" o "llave de lavaplatos": se muestra solo esa columna, repartida en las dos.
     private fun ProductListRequest.withProductType(type: ProductType?): ProductListRequest =
-        if (type == null || category !in type.listCategories) {
-            this
-        } else {
-            copy(singleColumn = type.column, firstColumnTitle = type.columnTitle, secondColumnTitle = "")
-        }
+        ProductFilters(productType = type).applyTo(this)
 
-    private fun ProductListRequest.withMaxPrice(maxPrice: Double?): ProductListRequest =
-        if (maxPrice == null) this else copy(maxPrice = maxPrice, title = "$title${priceSuffix(maxPrice)}")
+    private fun ProductListRequest.withFilters(filters: ProductFilters): ProductListRequest = filters.applyTo(this)
 
-    private fun priceSuffix(maxPrice: Double?): String =
-        maxPrice?.let { " de menos de ${PriceFormatter.format(it)}" }.orEmpty()
+    private fun advisorResultText(result: AdvisorCallNotifier.Result): String = when (result) {
+        is AdvisorCallNotifier.Result.Answered ->
+            "Listo, ${result.name.substringBefore(' ')} ya recibió el aviso y viene en camino. " +
+                "Mientras tanto, puedes mirar los productos en mi pantalla."
+        is AdvisorCallNotifier.Result.NoAnswer -> ADVISOR_NO_ANSWER_TEXT
+        is AdvisorCallNotifier.Result.Unavailable -> ADVISOR_UNAVAILABLE_TEXT
+    }
 
     companion object {
         private const val SEARCH_PAGE_SIZE = 10
+        private const val RESULT_SPEECH_DELAY_MS = 1_200L
         const val CATALOG_SHOWN_TEXT =
             "Aquí tienes algunas opciones. Si quieres verlas en exhibición, toca Ir a verlos y te acompaño."
         const val LOCATION_ARRIVAL_TEXT =
             "Ya llegamos. Si quieres, también puedo ayudarte a comparar algunas opciones."
         const val ADVISOR_TEXT =
             "Claro. Liliana te atenderá apenas esté disponible. Mientras tanto, puedes mirar los productos en mi pantalla."
+        const val ADVISOR_CALLING_TEXT = "Claro, ya le aviso a una asesora. Dame un momento."
+        const val ADVISOR_ALREADY_CALLING_TEXT = "Ya estoy avisándole a una asesora, dame un momento."
+        const val ADVISOR_NO_ANSWER_TEXT =
+            "No logré comunicarme con una asesora en este momento. Puedes seguir mirando los productos " +
+                "en mi pantalla, o pedírmelo de nuevo en un rato."
+        const val ADVISOR_UNAVAILABLE_TEXT =
+            "En este momento no puedo avisarle a una asesora. Puedes acercarte a cualquier asesora " +
+                "de la tienda y con gusto te atiende."
         const val JUST_BROWSING_TEXT =
             "Claro, mira con calma. Si necesitas algo, toca Hablar con Temi en mi pantalla."
         const val UNSUPPORTED_QUESTION =

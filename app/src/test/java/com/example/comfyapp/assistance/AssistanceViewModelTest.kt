@@ -43,7 +43,10 @@ class AssistanceViewModelTest {
     fun `new customer is greeted and heard`() {
         assertTrue(viewModel.start(fromDetection = true))
 
-        assertEquals(AssistanceEffect.AskAndListen(AssistanceViewModel.GREETING), viewModel.effect.value)
+        assertEquals(
+            AssistanceEffect.AskAndListen(AssistanceViewModel.GREETING, AssistanceViewModel.GREETING_SCREEN),
+            viewModel.effect.value
+        )
         assertEquals(1, analyzer.resets)
         assertTrue("session_started" in events)
     }
@@ -60,7 +63,7 @@ class AssistanceViewModelTest {
         talk(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY))
 
         val confirm = viewModel.effect.value as AssistanceEffect.Confirm
-        assertEquals("Entendí que buscas sanitarios. ¿Es correcto?", confirm.summary)
+        assertEquals("Entendí que buscas sanitarios. ¿Es correcto?", confirm.understood)
         assertEquals(ConversationStage.CONFIRMING, viewModel.stage)
 
         viewModel.onConfirmed()
@@ -81,7 +84,7 @@ class AssistanceViewModelTest {
         )
 
         val confirm = viewModel.effect.value as AssistanceEffect.Confirm
-        assertEquals("Entendí que buscas coral en griferías. ¿Es correcto?", confirm.summary)
+        assertEquals("Entendí que buscas coral en griferías. ¿Es correcto?", confirm.understood)
     }
 
     @Test
@@ -97,7 +100,7 @@ class AssistanceViewModelTest {
         )
 
         val confirm = viewModel.effect.value as AssistanceEffect.Confirm
-        assertEquals("Entendí que buscas griferías para baño, de menos de $100.000. ¿Es correcto?", confirm.summary)
+        assertEquals("Entendí que buscas griferías para baño, de menos de $100.000. ¿Es correcto?", confirm.understood)
     }
 
     @Test
@@ -112,7 +115,7 @@ class AssistanceViewModelTest {
         )
 
         val confirm = viewModel.effect.value as AssistanceEffect.Confirm
-        assertEquals("Entendí que buscas combos de sanitario, de menos de $500.000. ¿Es correcto?", confirm.summary)
+        assertEquals("Entendí que buscas combos de sanitario, de menos de $500.000. ¿Es correcto?", confirm.understood)
     }
 
     @Test
@@ -130,7 +133,7 @@ class AssistanceViewModelTest {
         val confirm = viewModel.effect.value as AssistanceEffect.Confirm
         assertEquals(
             "Entendí que buscas revestimientos solo para paredes para exterior, antideslizante. ¿Es correcto?",
-            confirm.summary
+            confirm.understood
         )
     }
 
@@ -152,7 +155,7 @@ class AssistanceViewModelTest {
         answer(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY))
 
         val confirm = viewModel.effect.value as AssistanceEffect.Confirm
-        assertEquals("Entendí que buscas sanitarios para baño. ¿Es correcto?", confirm.summary)
+        assertEquals("Entendí que buscas sanitarios para baño. ¿Es correcto?", confirm.understood)
         // sin confirmar todavía: el proyecto vive en el borrador, no en lo aceptado
         assertEquals("remodelación", CustomerSessionManager.pending()?.candidate?.project)
         assertEquals(null, CustomerSessionManager.current().project)
@@ -182,7 +185,9 @@ class AssistanceViewModelTest {
         answer(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, color = "blanco"))
 
         val confirm = viewModel.effect.value as AssistanceEffect.Confirm
-        assertEquals("Entendí que buscas griferías para cocina, color blanco. ¿Es correcto?", confirm.summary)
+        assertEquals("Entendí que buscas griferías para cocina, color blanco. ¿Es correcto?", confirm.understood)
+        // la frase rechazada no se repite: solo lo que dijo al corregir
+        assertEquals("Escuché: \"frase del cliente\".", confirm.summary.lines().first())
     }
 
     @Test
@@ -201,6 +206,8 @@ class AssistanceViewModelTest {
         val execute = viewModel.effect.value as AssistanceEffect.Execute
         assertEquals(AssistanceAction.StartCategoryFlow(CatalogDestination.SANITARY), execute.action)
         assertEquals("moderno", execute.context.activeNeed?.style)
+        // sin confirmación, Temi igual dice qué va a mostrar
+        assertEquals("Listo. Te mostraré: sanitarios, estilo moderno.", execute.announcement)
     }
 
     @Test
@@ -273,7 +280,7 @@ class AssistanceViewModelTest {
         viewModel.start(fromDetection = true)
 
         assertEquals(CustomerContext(), CustomerSessionManager.current())
-        assertEquals(AssistanceEffect.AskAndListen(AssistanceViewModel.GREETING), viewModel.effect.value)
+        assertEquals(AssistanceViewModel.GREETING, (viewModel.effect.value as AssistanceEffect.AskAndListen).question)
     }
 
     @Test
@@ -291,7 +298,7 @@ class AssistanceViewModelTest {
         answer(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.TAPS, space = "baño"))
 
         val confirm = viewModel.effect.value as AssistanceEffect.Confirm
-        assertEquals("Entendí que buscas griferías para baño. ¿Es correcto?", confirm.summary)
+        assertEquals("Entendí que buscas griferías para baño. ¿Es correcto?", confirm.understood)
         viewModel.onConfirmed()
         val execute = viewModel.effect.value as AssistanceEffect.Execute
         assertEquals(ProductCategory.TAPS, execute.context.activeNeed?.category)
@@ -310,7 +317,7 @@ class AssistanceViewModelTest {
 
         assertTrue(analyzer.lastRequest!!.correcting)
         val confirm = viewModel.effect.value as AssistanceEffect.Confirm
-        assertEquals("Entendí que buscas griferías para baño. ¿Es correcto?", confirm.summary)
+        assertEquals("Entendí que buscas griferías para baño. ¿Es correcto?", confirm.understood)
         viewModel.onConfirmed()
         assertEquals(listOf(ProductCategory.TAPS), CustomerSessionManager.current().needs.map { it.category })
     }
@@ -354,7 +361,7 @@ class AssistanceViewModelTest {
         val confirm = viewModel.effect.value as AssistanceEffect.Confirm
         assertEquals(
             "Entendí que buscas sanitarios para baño. También anoté griferías para baño para revisarlo después. ¿Es correcto?",
-            confirm.summary
+            confirm.understood
         )
     }
 
@@ -383,6 +390,59 @@ class AssistanceViewModelTest {
         val old = System.currentTimeMillis() - AssistanceViewModel.SESSION_IDLE_TIMEOUT_MS - 1
         CustomerSessionManager.prepareChange(analysis, nowMs = old)
         CustomerSessionManager.commitPending(markConfirmed = true, nowMs = old)
+    }
+
+    @Test
+    fun `confirmation repeats exactly what the customer said`() {
+        viewModel.start(fromDetection = true)
+        viewModel.onListeningStarted()
+        analyzer.next = Result.success(IntentAnalysis(AssistanceType.PROJECT_ASSISTANCE, project = "remodelación", space = "baño"))
+        viewModel.onHeard("Estoy remodelando el baño.")
+        viewModel.onListeningStarted()
+        analyzer.next = Result.success(IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.SANITARY))
+        viewModel.onHeard("Un sanitario")
+
+        val confirm = viewModel.effect.value as AssistanceEffect.Confirm
+        assertEquals(
+            "Escuché: \"Estoy remodelando el baño\" y \"Un sanitario\".\nTe mostraré: sanitarios para baño.\n¿Es correcto?",
+            confirm.summary
+        )
+        assertEquals("Entendí que buscas sanitarios para baño. ¿Es correcto?", confirm.understood)
+    }
+
+    @Test
+    fun `repeat back keeps the last phrases and drops end punctuation`() {
+        assertEquals("Escuché: \"hola\".", AssistanceViewModel.repeatBack(listOf(" ¿hola? ")))
+        assertEquals(
+            "Escuché: \"b\", \"c\" y \"d\".",
+            AssistanceViewModel.repeatBack(listOf("a", "b", "c", "d"))
+        )
+        assertEquals(null, AssistanceViewModel.repeatBack(listOf(" . ")))
+    }
+
+    @Test
+    fun `color missing in the analysis is taken from the phrase`() {
+        viewModel.start(fromDetection = true)
+        viewModel.onListeningStarted()
+        analyzer.next = Result.success(
+            IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.FLOOR_AND_WALL)
+        )
+        viewModel.onHeard("Pisos de color gris.")
+
+        assertEquals("gris", CustomerSessionManager.pending()?.candidate?.activeNeed?.color)
+        assertTrue("color_from_phrase" in events)
+    }
+
+    @Test
+    fun `color returned by gemini is never replaced or doubled`() {
+        viewModel.start(fromDetection = true)
+        viewModel.onListeningStarted()
+        analyzer.next = Result.success(
+            IntentAnalysis(AssistanceType.CATEGORY_BROWSE, category = ProductCategory.FLOOR_AND_WALL, color = "negro")
+        )
+        viewModel.onHeard("Pisos negros, o mejor grises")
+
+        assertEquals("negro", CustomerSessionManager.pending()?.candidate?.activeNeed?.color)
     }
 
     private fun talk(analysis: IntentAnalysis) {

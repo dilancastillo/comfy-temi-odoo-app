@@ -12,6 +12,7 @@
     <uses-permission android:name="com.robotemi.permission.NAVIGATION" />
     <uses-permission android:name="com.robotemi.permission.SEQUENCE" />
     <uses-permission android:name="com.robotemi.permission.SETTINGS" />
+    <uses-permission android:name="com.robotemi.permission.MEETINGS" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
@@ -41,7 +42,7 @@
         <!-- Metadata para permisos de Temi -->
         <meta-data
             android:name="@string/metadata_permissions"
-            android:value="com.robotemi.permission.sequence,com.robotemi.permission.map,com.robotemi.permission.settings,com.robotemi.permission.navigation" /> <!-- Metadata para configurar como Skill de Temi -->
+            android:value="com.robotemi.permission.sequence,com.robotemi.permission.map,com.robotemi.permission.settings,com.robotemi.permission.navigation,com.robotemi.permission.meetings" /> <!-- Metadata para configurar como Skill de Temi -->
         <meta-data
             android:name="com.robotemi.sdk.metadata.SKILL"
             android:value="@string/app_name" />

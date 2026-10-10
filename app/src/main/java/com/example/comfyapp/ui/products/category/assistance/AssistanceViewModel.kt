@@ -5,6 +5,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.comfyapp.domain.model.AssistanceAction
+import com.example.comfyapp.domain.model.ColorFromPhrase
+import com.example.comfyapp.domain.model.NeedField
 import com.example.comfyapp.domain.model.AssistanceType
 import com.example.comfyapp.domain.model.ConversationStage
 import com.example.comfyapp.domain.model.CustomerContext
@@ -24,12 +26,19 @@ data class AssistanceUiState(
 )
 
 sealed interface AssistanceEffect {
-    // decir la pregunta y abrir el micrófono al terminar
-    data class AskAndListen(val question: String) : AssistanceEffect
-    // decir el resumen y mostrar "Sí, correcto" / "Quiero corregir algo"
-    data class Confirm(val summary: String) : AssistanceEffect
+    // decir la pregunta y abrir el micrófono al terminar; display es lo que se muestra en pantalla
+    data class AskAndListen(val question: String, val display: String = question) : AssistanceEffect
+    // summary repite tal cual lo que dijo el cliente y debajo lo que Temi va a hacer (se dice y se
+    // muestra) con "Sí, correcto" / "Quiero corregir algo"; understood es la interpretación completa
+    // para el registro
+    data class Confirm(val summary: String, val understood: String = summary) : AssistanceEffect
     // context es la memoria ya aceptada; la acción usa su necesidad activa
-    data class Execute(val action: AssistanceAction, val context: CustomerContext) : AssistanceEffect
+    // announcement: lo que Temi dice antes de actuar cuando no pidió confirmación ("Listo. Te mostraré: …")
+    data class Execute(
+        val action: AssistanceAction,
+        val context: CustomerContext,
+        val announcement: String? = null
+    ) : AssistanceEffect
     // se agotaron los intentos: decir el mensaje y cerrar la conversación
     data class GiveUp(val message: String) : AssistanceEffect
 }
@@ -59,6 +68,9 @@ class AssistanceViewModel(
     // identifica la petición vigente a Gemini: una respuesta de una petición anterior se ignora
     private var requestId = 0L
     private var stageChangedAtMs = 0L
+    // frases del cliente que armaron el borrador actual: se le repiten tal cual al confirmar
+    private val draftPhrases = mutableListOf<String>()
+    private var lastHeard: String? = null
 
     val stage: ConversationStage get() = _state.value?.stage ?: ConversationStage.IDLE
 
@@ -86,7 +98,8 @@ class AssistanceViewModel(
         }
         failedAttempts = 0
         listens = 0
-        ask(if (returningCustomer) FOLLOW_UP_QUESTION else GREETING)
+        draftPhrases.clear()
+        if (returningCustomer) ask(FOLLOW_UP_QUESTION) else ask(GREETING, display = GREETING_SCREEN)
         return true
     }
 
@@ -97,6 +110,7 @@ class AssistanceViewModel(
     fun onHeard(text: String) {
         if (stage != ConversationStage.LISTENING) return
         listens++
+        lastHeard = text
         setStage(ConversationStage.ANALYZING)
         val thisRequest = ++requestId
         val thisSession = session.epoch
@@ -136,6 +150,7 @@ class AssistanceViewModel(
         logEvent("confirmation", listOf("answer" to "yes", "need" to session.pending()?.need?.id))
         // Recién ahora el borrador pasa a la memoria aceptada, confirmado para esa necesidad y revisión.
         session.commitPending(markConfirmed = true, nowMs = clock())
+        draftPhrases.clear()
         execute(action)
     }
 
@@ -145,6 +160,8 @@ class AssistanceViewModel(
         logEvent("confirmation", listOf("answer" to "correct", "need" to session.pending()?.need?.id))
         // Lo rechazado se queda en el borrador para corregirlo, nunca en lo aceptado ni en el historial.
         correcting = true
+        // Lo dicho antes ya fue rechazado: la próxima confirmación repite solo la corrección.
+        draftPhrases.clear()
         analyzer.forgetLastTurn()
         // La corrección siempre tiene al menos una escucha, aunque ya se hayan gastado intentos.
         failedAttempts = minOf(failedAttempts, MAX_FAILED_ATTEMPTS - 1)
@@ -177,7 +194,8 @@ class AssistanceViewModel(
         _effect.value = null
     }
 
-    private fun handleAnalysis(analysis: IntentAnalysis) {
+    private fun handleAnalysis(received: IntentAnalysis) {
+        val analysis = withColorFromPhrase(received)
         val wasCorrecting = correcting
         correcting = false
         val change = session.prepareChange(analysis, correcting = wasCorrecting, nowMs = clock())
@@ -206,6 +224,7 @@ class AssistanceViewModel(
             retryOrGiveUp(analysis.nextQuestion ?: RouteAssistanceUseCase.DEFAULT_CLARIFICATION)
             return
         }
+        lastHeard?.let(draftPhrases::add)
 
         setStage(ConversationStage.ROUTING)
         val action = route(target, analysis.assistanceType, analysis.nextQuestion)
@@ -223,19 +242,35 @@ class AssistanceViewModel(
             }
             action.needsConfirmation() && change.requiresConfirmation -> {
                 pendingAction = action
-                val summary = describe(target, action, change.additionalNeeds)
+                val understood = describe(target, action, change.additionalNeeds)
+                val summary = repeatBack(draftPhrases)
+                    ?.let { listOf(it, describe.preview(target, action), CONFIRM_QUESTION).joinToString("\n") }
+                    ?: understood
+                logEvent("confirmation_asked", listOf("understood" to understood))
                 setStage(ConversationStage.CONFIRMING, question = summary)
-                _effect.value = AssistanceEffect.Confirm(summary)
+                _effect.value = AssistanceEffect.Confirm(summary, understood)
             }
             else -> {
                 // Detalle sobre una necesidad ya confirmada: se guarda sin volver a preguntar.
                 session.commitPending(markConfirmed = action.needsConfirmation(), nowMs = clock())
-                execute(action)
+                draftPhrases.clear()
+                // Sin confirmación el cliente igual oye qué cambió: si Temi entendió mal, lo nota y corrige.
+                val announcement = if (action.needsConfirmation()) "Listo. ${describe.preview(target, action)}" else null
+                execute(action, announcement)
             }
         }
     }
 
-    private fun execute(action: AssistanceAction) {
+    // Gemini a veces omite el color aunque el cliente lo dijo ("pisos de color gris"). Solo se toma
+    // de la frase si Gemini no devolvió ninguno: nunca se suma un segundo color al que ya trajo.
+    private fun withColorFromPhrase(analysis: IntentAnalysis): IntentAnalysis {
+        if (!analysis.color.isNullOrBlank() || NeedField.COLOR in analysis.clearFields) return analysis
+        val color = ColorFromPhrase.find(lastHeard) ?: return analysis
+        logEvent("color_from_phrase", listOf("color" to color))
+        return analysis.copy(color = color)
+    }
+
+    private fun execute(action: AssistanceAction, announcement: String? = null) {
         pendingAction = null
         val next = if (action == AssistanceAction.RequestAdvisor) {
             ConversationStage.WAITING_ADVISOR
@@ -243,7 +278,7 @@ class AssistanceViewModel(
             ConversationStage.EXECUTING
         }
         setStage(next)
-        _effect.value = AssistanceEffect.Execute(action, session.current())
+        _effect.value = AssistanceEffect.Execute(action, session.current(), announcement)
     }
 
     private fun retryOrGiveUp(question: String) {
@@ -263,13 +298,14 @@ class AssistanceViewModel(
         requestId++
         pendingAction = null
         correcting = false
+        draftPhrases.clear()
         session.discardPending()
     }
 
-    private fun ask(question: String) {
+    private fun ask(question: String, display: String = question) {
         lastQuestion = question
-        setStage(ConversationStage.ASKING_DETAIL, question = question)
-        _effect.value = AssistanceEffect.AskAndListen(question)
+        setStage(ConversationStage.ASKING_DETAIL, question = display)
+        _effect.value = AssistanceEffect.AskAndListen(question, display)
     }
 
     private fun finish() {
@@ -302,18 +338,36 @@ class AssistanceViewModel(
         // tope de escuchas por conversación, aunque cada turno aporte datos (costo de Azure)
         const val MAX_LISTENS = 4
         const val SESSION_IDLE_TIMEOUT_MS = 60_000L
-        // más que la escucha (10 s) + dos intentos a Gemini (13 s c/u) + lo que dura una pregunta
-        const val STALE_CONVERSATION_MS = 45_000L
+        // más que la escucha (13 s) + dos intentos a Gemini (13 s c/u) + lo que dura una pregunta
+        const val STALE_CONVERSATION_MS = 50_000L
 
-        const val GREETING =
-            "Hola, bienvenido. Estoy aquí para ayudarte mientras mi compañera Liliana está disponible. " +
-                "¿Qué estás buscando? ¿Sanitarios, griferías o pisos y paredes?"
+        const val GREETING = "Hola, bienvenido a Comfer. ¿Te ayudo a encontrar lo que estás buscando?"
+        const val GREETING_SCREEN =
+            "Hola. Puedo ayudarte.\nEncuentra productos, recibe recomendaciones o déjame acompañarte por la sala.\n" +
+                "Puedes hablarme cuando aparezca la instrucción en pantalla o tocar la pantalla."
+        // Las últimas frases bastan: con más el resumen se vuelve muy largo para decirlo.
+        private const val MAX_REPEATED_PHRASES = 3
+
+        const val CONFIRM_QUESTION = "¿Es correcto?"
+
+        // Repetir lo que dijo el cliente, sin reinterpretarlo, le muestra que Temi sí lo escuchó todo.
+        fun repeatBack(phrases: List<String>): String? {
+            val quoted = phrases
+                .map { it.trim().trimEnd('.', '!', '?', ',', ' ').trimStart('¡', '¿') }
+                .filter { it.isNotEmpty() }
+                .takeLast(MAX_REPEATED_PHRASES)
+                .map { "\"$it\"" }
+            if (quoted.isEmpty()) return null
+            val joined = if (quoted.size == 1) quoted.first()
+            else quoted.dropLast(1).joinToString(", ") + " y " + quoted.last()
+            return "Escuché: $joined."
+        }
         const val FOLLOW_UP_QUESTION = "Claro, dime. ¿En qué más te puedo ayudar?"
         const val RETRY_QUESTION =
             "No te entendí bien. ¿Qué estás buscando: sanitarios, griferías o pisos y paredes?"
         const val CORRECTION_QUESTION = "Claro, ¿qué quieres corregir?"
         const val RESUME_NOT_FOUND_QUESTION =
             "Eso no lo tengo anotado en esta visita. ¿Quieres que lo busquemos? Dime qué producto necesitas."
-        const val FINAL_ATTEMPT_TEXT = "No logré entenderte. Puedes tocar una categoría en mi pantalla."
+        const val FINAL_ATTEMPT_TEXT = "No logré entenderte. Puedes tocar Buscar productos en mi pantalla."
     }
 }

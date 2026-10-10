@@ -61,7 +61,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                 onError = ::handleError,
                 offset = offset * 2,
                 limit = request.pageSize * 2,
-                maxPrice = request.maxPrice
+                maxPrice = request.maxPrice, color = request.color
             )
             return
         }
@@ -100,7 +100,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
             }
             ProductCategory.FLOOR_AND_WALL_BATHROOMS -> {
                 ProductRepository.getBathroomsWall(
-                    maxPrice = request.maxPrice,
+                    maxPrice = request.maxPrice, color = request.color,
                     onSuccess = firstSuccess,
                     onError = ::handleError,
                     offset = offset,
@@ -108,7 +108,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     order = request.firstColumnOrder
                 )
                 ProductRepository.getBathroomsFloorAndWall(
-                    maxPrice = request.maxPrice,
+                    maxPrice = request.maxPrice, color = request.color,
                     onSuccess = secondSuccess,
                     onError = ::handleError,
                     offset = offset,
@@ -118,7 +118,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
             }
             ProductCategory.FLOOR_AND_WALL_SOCIAL -> {
                 ProductRepository.getSocialWall(
-                    maxPrice = request.maxPrice,
+                    maxPrice = request.maxPrice, color = request.color,
                     onSuccess = firstSuccess,
                     onError = ::handleError,
                     offset = offset,
@@ -126,7 +126,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     order = request.firstColumnOrder
                 )
                 ProductRepository.getSocialFloorAndWall(
-                    maxPrice = request.maxPrice,
+                    maxPrice = request.maxPrice, color = request.color,
                     onSuccess = secondSuccess,
                     onError = ::handleError,
                     offset = offset,
@@ -136,7 +136,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
             }
             ProductCategory.FLOOR_AND_WALL_EXTERIORS -> {
                 ProductRepository.getExteriorsWall(
-                    maxPrice = request.maxPrice,
+                    maxPrice = request.maxPrice, color = request.color,
                     onSuccess = firstSuccess,
                     onError = ::handleError,
                     offset = offset,
@@ -144,7 +144,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     order = request.firstColumnOrder
                 )
                 ProductRepository.getExteriorsFloorAndWall(
-                    maxPrice = request.maxPrice,
+                    maxPrice = request.maxPrice, color = request.color,
                     onSuccess = secondSuccess,
                     onError = ::handleError,
                     offset = offset,
@@ -154,7 +154,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
             }
             ProductCategory.TAPS -> {
                 ProductRepository.getProductsTapsLavaM(
-                    maxPrice = request.maxPrice,
+                    maxPrice = request.maxPrice, color = request.color,
                     locationName = DEFAULT_LOCATION,
                     onSuccess = firstSuccess,
                     onError = ::handleError,
@@ -162,7 +162,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     limit = request.pageSize
                 )
                 ProductRepository.getProductsTapsLavaP(
-                    maxPrice = request.maxPrice,
+                    maxPrice = request.maxPrice, color = request.color,
                     locationName = DEFAULT_LOCATION,
                     onSuccess = secondSuccess,
                     onError = ::handleError,
@@ -172,7 +172,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
             }
             ProductCategory.SANITARY -> {
                 ProductRepository.getProductsSanitaryCombo(
-                    maxPrice = request.maxPrice,
+                    maxPrice = request.maxPrice, color = request.color,
                     locationName = DEFAULT_LOCATION,
                     onSuccess = firstSuccess,
                     onError = ::handleError,
@@ -180,7 +180,7 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
                     limit = request.pageSize
                 )
                 ProductRepository.getProductsSanitaryOnly(
-                    maxPrice = request.maxPrice,
+                    maxPrice = request.maxPrice, color = request.color,
                     locationName = DEFAULT_LOCATION,
                     onSuccess = secondSuccess,
                     onError = ::handleError,
@@ -203,43 +203,43 @@ class OdooProductCatalogRepository : ProductCatalogRepository {
     ): Boolean {
         when (request.category to column) {
             ProductCategory.SANITARY to 1 -> ProductRepository.getProductsSanitaryCombo(
-                maxPrice = request.maxPrice, locationName = DEFAULT_LOCATION,
+                maxPrice = request.maxPrice, color = request.color, locationName = DEFAULT_LOCATION,
                 onSuccess = onSuccess, onError = onError, offset = offset, limit = limit
             )
             ProductCategory.SANITARY to 2 -> ProductRepository.getProductsSanitaryOnly(
-                maxPrice = request.maxPrice, locationName = DEFAULT_LOCATION,
+                maxPrice = request.maxPrice, color = request.color, locationName = DEFAULT_LOCATION,
                 onSuccess = onSuccess, onError = onError, offset = offset, limit = limit
             )
             ProductCategory.TAPS to 1 -> ProductRepository.getProductsTapsLavaM(
-                maxPrice = request.maxPrice, locationName = DEFAULT_LOCATION,
+                maxPrice = request.maxPrice, color = request.color, locationName = DEFAULT_LOCATION,
                 onSuccess = onSuccess, onError = onError, offset = offset, limit = limit
             )
             ProductCategory.TAPS to 2 -> ProductRepository.getProductsTapsLavaP(
-                maxPrice = request.maxPrice, locationName = DEFAULT_LOCATION,
+                maxPrice = request.maxPrice, color = request.color, locationName = DEFAULT_LOCATION,
                 onSuccess = onSuccess, onError = onError, offset = offset, limit = limit
             )
             ProductCategory.FLOOR_AND_WALL_BATHROOMS to 1 -> ProductRepository.getBathroomsWall(
-                maxPrice = request.maxPrice, onSuccess = onSuccess, onError = onError,
+                maxPrice = request.maxPrice, color = request.color, onSuccess = onSuccess, onError = onError,
                 offset = offset, limit = limit, order = request.firstColumnOrder
             )
             ProductCategory.FLOOR_AND_WALL_BATHROOMS to 2 -> ProductRepository.getBathroomsFloorAndWall(
-                maxPrice = request.maxPrice, onSuccess = onSuccess, onError = onError,
+                maxPrice = request.maxPrice, color = request.color, onSuccess = onSuccess, onError = onError,
                 offset = offset, limit = limit, order = request.secondColumnOrder
             )
             ProductCategory.FLOOR_AND_WALL_SOCIAL to 1 -> ProductRepository.getSocialWall(
-                maxPrice = request.maxPrice, onSuccess = onSuccess, onError = onError,
+                maxPrice = request.maxPrice, color = request.color, onSuccess = onSuccess, onError = onError,
                 offset = offset, limit = limit, order = request.firstColumnOrder
             )
             ProductCategory.FLOOR_AND_WALL_SOCIAL to 2 -> ProductRepository.getSocialFloorAndWall(
-                maxPrice = request.maxPrice, onSuccess = onSuccess, onError = onError,
+                maxPrice = request.maxPrice, color = request.color, onSuccess = onSuccess, onError = onError,
                 offset = offset, limit = limit, order = request.secondColumnOrder
             )
             ProductCategory.FLOOR_AND_WALL_EXTERIORS to 1 -> ProductRepository.getExteriorsWall(
-                maxPrice = request.maxPrice, onSuccess = onSuccess, onError = onError,
+                maxPrice = request.maxPrice, color = request.color, onSuccess = onSuccess, onError = onError,
                 offset = offset, limit = limit, order = request.firstColumnOrder
             )
             ProductCategory.FLOOR_AND_WALL_EXTERIORS to 2 -> ProductRepository.getExteriorsFloorAndWall(
-                maxPrice = request.maxPrice, onSuccess = onSuccess, onError = onError,
+                maxPrice = request.maxPrice, color = request.color, onSuccess = onSuccess, onError = onError,
                 offset = offset, limit = limit, order = request.secondColumnOrder
             )
             else -> return false

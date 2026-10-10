@@ -31,6 +31,17 @@ class DescribeCustomerContextUseCase {
         return "$main$noted ¿Es correcto?"
     }
 
+    // Lo que Temi va a hacer, en una línea, debajo de la frase del cliente: así el cliente ve si lo
+    // que se interpretó coincide con lo que pidió.
+    fun preview(need: CustomerNeed?, action: AssistanceAction): String = when (action) {
+        is AssistanceAction.NavigateToCategory -> "Te llevaré a: ${action.destination.displayName}."
+        is AssistanceAction.SearchExactProduct -> {
+            val where = action.destination?.let { " en ${it.displayName}" }.orEmpty()
+            "Buscaré: ${action.query}$where."
+        }
+        else -> "Te mostraré: ${describeNeed(need)}."
+    }
+
     // Hay varias necesidades guardadas que encajan: se pregunta por la que distingue a cada una.
     fun askWhich(options: List<CustomerNeed>): String {
         val labels = options.map(::label)

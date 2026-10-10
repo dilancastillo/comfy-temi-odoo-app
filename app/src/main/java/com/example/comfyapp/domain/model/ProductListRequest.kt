@@ -22,6 +22,8 @@ data class ProductListRequest(
     val searchQuery: String? = null,
     // tope de precio pedido por el cliente; null = sin límite
     val maxPrice: Double? = null,
+    // color pedido por el cliente; filtra por el nombre del producto. null = cualquier color
+    val color: String? = null,
     // si tiene valor, solo se consulta esa columna (1 o 2) y sus productos llenan las dos columnas
     val singleColumn: Int? = null
 ) : Serializable

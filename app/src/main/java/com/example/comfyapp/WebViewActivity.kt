@@ -10,7 +10,6 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.comfyapp.databinding.ActivityWebviewBinding
 import com.example.comfyapp.robot.TemiRobotRepository
 import com.example.comfyapp.ui.RobotInactivityNavigator
-import com.example.comfyapp.ui.products.category.ProductsUserActivity
 
 class WebViewActivity : AppCompatActivity() {
     private var promoId: Int = -1
@@ -20,11 +19,7 @@ class WebViewActivity : AppCompatActivity() {
     private var useCenterScreenTimeout = false
     private val centerScreenTimeout = Runnable {
         robotRepository.speak("Dime, ¿en qué te puedo ayudar?")
-        startActivity(
-            Intent(this, ProductsUserActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            }
-        )
+        startActivity(CoverActivity.homeIntent(this))
     }
 
     companion object {

@@ -60,6 +60,17 @@ class IntentAnalysisParserTest {
     }
 
     @Test
+    fun `english colors are translated to spanish`() {
+        val analysis = IntentAnalysisParser.parse(
+            """{"assistance_type":"CATEGORY_BROWSE","category":"SANITARY","color":"White",
+               "additional_needs":[{"category":"TAPS","color":"black"}]}"""
+        )
+        assertEquals("blanco", analysis.color)
+        assertEquals("negro", analysis.additionalNeeds.single().color)
+        assertEquals("negro mate", IntentAnalysisParser.parse("""{"assistance_type":"CATEGORY_BROWSE","color":"negro mate"}""").color)
+    }
+
+    @Test
     fun `max price is read as a positive number`() {
         val analysis = IntentAnalysisParser.parse(
             """{"assistance_type":"CATEGORY_BROWSE","category":"TAPS","max_price":100000}"""

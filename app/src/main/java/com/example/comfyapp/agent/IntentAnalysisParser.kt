@@ -47,7 +47,7 @@ object IntentAnalysisParser {
             space = json.string("space"),
             project = json.string("project"),
             style = json.string("style"),
-            color = json.string("color"),
+            color = json.color("color"),
             budgetLevel = json.string("budget_level")?.lowercase()?.takeIf { it in BUDGET_LEVELS },
             maxPrice = json.get("max_price")
                 ?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }
@@ -191,7 +191,7 @@ object IntentAnalysisParser {
                 category = itemCategory,
                 productType = ProductType.fromWire(obj.string("product_type")),
                 space = obj.string("space"),
-                color = obj.string("color"),
+                color = obj.color("color"),
                 maxPrice = obj.price("max_price"),
                 technicalNeeds = obj.stringList("technical_needs")
             )
@@ -203,6 +203,16 @@ object IntentAnalysisParser {
         if (element.isJsonNull || !element.isJsonPrimitive) return null
         return element.asString.trim().takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
     }
+
+    // Gemini a veces responde el color en inglés ("white"); Temi lo dice y lo muestra en español.
+    private fun JsonObject.color(key: String): String? =
+        string(key)?.let { value -> ENGLISH_COLORS[value.lowercase()] ?: value }
+
+    private val ENGLISH_COLORS = mapOf(
+        "white" to "blanco", "black" to "negro", "gray" to "gris", "grey" to "gris", "beige" to "beige",
+        "brown" to "café", "blue" to "azul", "green" to "verde", "red" to "rojo", "gold" to "dorado",
+        "silver" to "plateado", "chrome" to "cromado", "wood" to "madera", "cream" to "crema"
+    )
 
     private fun JsonObject.stringList(key: String): List<String> {
         val element = get(key) ?: return emptyList()

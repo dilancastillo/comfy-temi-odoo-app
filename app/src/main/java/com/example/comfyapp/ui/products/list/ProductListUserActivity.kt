@@ -26,6 +26,8 @@ import com.example.comfyapp.ui.SimpleViewModelFactory
 import com.example.comfyapp.robot.TemiRobotRepository
 import com.example.comfyapp.robot.TemiSessionManager
 import com.example.comfyapp.ui.RobotInactivityNavigator
+import com.example.comfyapp.CoverActivity
+import com.example.comfyapp.ui.TalkHint
 import com.example.comfyapp.ui.products.category.ProductsUserActivity
 
 class ProductListUserActivity : AppCompatActivity() {
@@ -166,6 +168,7 @@ class ProductListUserActivity : AppCompatActivity() {
             openCategories("back_to_categories_button")
         }
         binding.btnGoToProducts.setOnClickListener { goToProducts() }
+        TalkHint.attach(binding.floatingMenu.tvTalkHint)
         binding.floatingMenu.btnHablar.setOnClickListener {
             openCategories("btn_hablar", startAgent = true)
         }
@@ -312,10 +315,14 @@ class ProductListUserActivity : AppCompatActivity() {
             "return_to_categories reason=$reason " +
                 "durationMs=${SystemClock.elapsedRealtime() - screenEnteredAtMs}"
         )
+        // "Hablar con Temi" vuelve a la pantalla principal, donde Temi conversa.
+        if (startAgent) {
+            startActivity(CoverActivity.talkIntent(this))
+            return
+        }
         startActivity(
             Intent(this, ProductsUserActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                putExtra(ProductsUserActivity.EXTRA_START_AGENT, startAgent)
             }
         )
     }

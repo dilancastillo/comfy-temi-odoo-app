@@ -7,12 +7,30 @@
         android:id="@+id/floatingButtons"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="24dp">
+
+        <!-- Aviso que aparece cada pocos segundos para invitar a hablar con Temi -->
+        <TextView
+            android:id="@+id/tvTalkHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:alpha="0"
+            android:background="@drawable/bg_talk_hint"
+            android:elevation="6dp"
+            android:paddingStart="20dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="10dp"
+            android:text="Toca aquí para hablar con Temi"
+            android:textColor="@color/white"
+            android:textSize="22sp"
+            android:textStyle="bold" />
 
         <ImageButton
             android:id="@+id/btnHablar"
