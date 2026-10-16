@@ -22,6 +22,8 @@ import com.example.comfyapp.domain.model.CatalogProduct
 import com.example.comfyapp.domain.model.Product
 import com.example.comfyapp.domain.model.ProductListRequest
 import com.example.comfyapp.domain.model.ProductVideo
+import com.example.comfyapp.domain.usecase.NavigationMessages
+import com.example.comfyapp.session.CustomerSessionManager
 import com.example.comfyapp.ui.SimpleViewModelFactory
 import com.example.comfyapp.robot.TemiRobotRepository
 import com.example.comfyapp.robot.TemiSessionManager
@@ -245,7 +247,11 @@ class ProductListUserActivity : AppCompatActivity() {
         val location = requestedRobotLocation?.takeIf { it.isNotBlank() } ?: return
         val request = readRequest() ?: return
         Log.i(TAG, "go_to_products location=$location")
-        if (!robotRepository.goToLocation(location, arrivalMessage = PRODUCTS_ARRIVAL_TEXT)) return
+        val arrival = NavigationMessages.arrival(
+            location, CustomerSessionManager.current().activeNeed, showingProducts = true
+        )
+        if (!robotRepository.goToLocation(location, arrivalMessage = arrival)) return
+        robotRepository.speak(NavigationMessages.DEPARTURE_SPEECH)
         travelling = true
         // Ya camina hacia la zona: la pantalla no debe volver sola a categorías por estar quieta.
         useStationaryScreenTimeout = false
@@ -267,6 +273,7 @@ class ProductListUserActivity : AppCompatActivity() {
         }
 
     private fun showVideoOverlay(videoResId: Int) = with(binding) {
+        tvTravelNotice.text = NavigationMessages.departureScreen(requestedRobotLocation.orEmpty())
         videoOverlayContainer.visibility = View.VISIBLE
         videoView.setVideoURI(Uri.parse("android.resource://$packageName/$videoResId"))
         videoView.setOnCompletionListener { videoView.start() }
@@ -346,8 +353,6 @@ class ProductListUserActivity : AppCompatActivity() {
         private const val CATALOG_ERROR_TIMEOUT_MS = 60_000L
         private const val STATIONARY_SCREEN_TIMEOUT_MS = 60_000L
         private const val NAVIGATION_SETTLE_MS = 1_000L
-        private const val PRODUCTS_ARRIVAL_TEXT =
-            "Llegamos. En esta zona puedes ver los productos que te estoy mostrando en pantalla, junto con otros diseños."
 
         fun createIntent(context: Context, request: ProductListRequest) =
             Intent(context, ProductListUserActivity::class.java).apply {

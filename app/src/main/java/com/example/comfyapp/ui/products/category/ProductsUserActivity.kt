@@ -102,7 +102,7 @@ class ProductsUserActivity : AppCompatActivity() {
         }
         if (request.showTravelVideo) {
             waitingToOpenProductList = true
-            speechController.speak("¡Perfecto! Acompáñame.") {
+            speechController.speak(com.example.comfyapp.domain.usecase.NavigationMessages.DEPARTURE_SPEECH) {
                 if (waitingToOpenProductList) {
                     waitingToOpenProductList = false
                     openScreen()

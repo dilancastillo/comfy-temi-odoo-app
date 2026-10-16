@@ -83,6 +83,12 @@ class CoverActivity : AppCompatActivity(), OnDetectionStateChangedListener {
             }
         }
 
+        override fun showNavigation(text: String) {
+            mostrarOverlay()
+            mostrarPregunta(text)
+            showingNavigation = true
+        }
+
         override fun openTiles(category: TileCategory?, filters: ProductFilters) {
             preserveSharedSpeechOnStop = true
             leaveScreen()
@@ -99,6 +105,8 @@ class CoverActivity : AppCompatActivity(), OnDetectionStateChangedListener {
     private var detectionListenerRegistered = false
     private var preserveSharedSpeechOnStop = false
     private var detectionPausedUntilMs = 0L
+    // el overlay muestra "Vamos a ... Sígueme" mientras Temi camina
+    private var showingNavigation = false
     private var listeningCountdownRunnable: Runnable? = null
     private val navigationStateListener: (Boolean) -> Unit = { isNavigating ->
         if (isNavigating) {
@@ -106,6 +114,11 @@ class CoverActivity : AppCompatActivity(), OnDetectionStateChangedListener {
             deactivateDetectionMode()
         } else {
             Log.i(TAG, "detection_mode_enabled reason=robot_navigation_finished")
+            // Llegó (o lo detuvieron): el "Vamos a..." ya no aplica.
+            if (showingNavigation) {
+                showingNavigation = false
+                ocultarOverlay()
+            }
             activateDetectionMode()
         }
     }
@@ -130,7 +143,10 @@ class CoverActivity : AppCompatActivity(), OnDetectionStateChangedListener {
             "En este momento no tengo conexión a internet. Puedes tocar Buscar productos en mi pantalla."
         private const val DETECTION_DISTANCE_METERS = 1.5f
         private const val LISTEN_TIMEOUT_SECONDS = 13
-        private const val LISTENING_TEXT = "Te estoy escuchando, puedes hablar..."
+        private const val LISTENING_TEXT = "🎤 Te escucho, habla ahora..."
+        // Mientras Temi habla no escucha: si el cliente responde encima, su respuesta se pierde.
+        private const val WAIT_TO_TALK_TEXT = "🔊 Espera a que termine de hablar"
+        private const val TOUCH_TO_ANSWER_TEXT = "👆 Toca uno de los dos botones"
         private const val THINKING_TEXT = "Pensando..."
         private const val HEAD_TALK_DEGREES = 50
         private const val DISABLED_ALPHA = 0.4f
@@ -262,7 +278,7 @@ class CoverActivity : AppCompatActivity(), OnDetectionStateChangedListener {
                 return
             }
             if (System.currentTimeMillis() < detectionPausedUntilMs) {
-                Log.i(TAG, "agent_detection_ignored reason=closed_by_touch")
+                Log.i(TAG, "agent_detection_ignored reason=paused_after_close")
                 return
             }
             startAssistance(fromDetection = true)
@@ -372,6 +388,11 @@ class CoverActivity : AppCompatActivity(), OnDetectionStateChangedListener {
                     ocultarOverlay()
                     speechController.speak(effect.message)
                 }
+                AssistanceEffect.WalkedAway -> {
+                    ocultarOverlay()
+                    // Si sigue frente a Temi (mirando la pantalla), no se le vuelve a saludar enseguida.
+                    detectionPausedUntilMs = System.currentTimeMillis() + DETECTION_PAUSE_AFTER_CLOSE_MS
+                }
             }
         }
     }
@@ -413,6 +434,7 @@ class CoverActivity : AppCompatActivity(), OnDetectionStateChangedListener {
         robotRepository.notifyUserInteraction()
         mostrarOverlay()
         mostrarPregunta(display)
+        mostrarEstado(WAIT_TO_TALK_TEXT)
         speechController.speak(question) {
             if (assistanceViewModel.stage != ConversationStage.ASKING_DETAIL) return@speak
             // Sin red no se puede escuchar ni entender: se cierra en vez de dejar el contador quieto.
@@ -452,6 +474,7 @@ class CoverActivity : AppCompatActivity(), OnDetectionStateChangedListener {
         robotRepository.notifyUserInteraction()
         mostrarOverlay()
         mostrarPregunta(summary)
+        mostrarEstado(TOUCH_TO_ANSWER_TEXT)
         agentConfirmButtons.visibility = View.VISIBLE
         cancelConfirmationTimeout()
         // La espera cuenta desde que Temi termina de leer la confirmación: si contara desde que
@@ -477,6 +500,11 @@ class CoverActivity : AppCompatActivity(), OnDetectionStateChangedListener {
 
     private fun mostrarPregunta(question: String) {
         binding.tvAgentQuestion.text = question
+    }
+
+    private fun mostrarEstado(text: String) = with(binding) {
+        tvAgentStatus.text = text
+        tvAgentStatus.visibility = View.VISIBLE
     }
 
     private fun mostrarEscuchando() {

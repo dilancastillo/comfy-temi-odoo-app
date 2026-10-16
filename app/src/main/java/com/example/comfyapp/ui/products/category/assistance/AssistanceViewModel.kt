@@ -41,6 +41,8 @@ sealed interface AssistanceEffect {
     ) : AssistanceEffect
     // se agotaron los intentos: decir el mensaje y cerrar la conversación
     data class GiveUp(val message: String) : AssistanceEffect
+    // El cliente no respondió al saludo (siguió de largo): Temi no insiste ni repite nada.
+    data object WalkedAway : AssistanceEffect
 }
 
 class AssistanceViewModel(
@@ -139,6 +141,15 @@ class AssistanceViewModel(
 
     fun onNothingHeard() {
         if (stage != ConversationStage.LISTENING) return
+        // Sin una sola frase en esta conversación el cliente no se quedó a hablar: insistirle o
+        // repetirle el saludo incomoda. Se vuelve a estar disponible (oportunidad no convertida).
+        if (listens == 0) {
+            logEvent("opportunity_not_converted", listOf("reason" to "no_answer"))
+            abandonTurn()
+            finish()
+            _effect.value = AssistanceEffect.WalkedAway
+            return
+        }
         listens++
         logEvent("listen_empty", emptyList())
         retryOrGiveUp(RETRY_QUESTION)
@@ -245,7 +256,7 @@ class AssistanceViewModel(
                 val understood = describe(target, action, change.additionalNeeds)
                 val summary = repeatBack(draftPhrases)
                     ?.let { listOf(it, describe.preview(target, action), CONFIRM_QUESTION).joinToString("\n") }
-                    ?: understood
+                    ?: "${understood.removeSuffix(" ¿Es correcto?")}\n$CONFIRM_QUESTION"
                 logEvent("confirmation_asked", listOf("understood" to understood))
                 setStage(ConversationStage.CONFIRMING, question = summary)
                 _effect.value = AssistanceEffect.Confirm(summary, understood)
@@ -341,14 +352,17 @@ class AssistanceViewModel(
         // más que la escucha (13 s) + dos intentos a Gemini (13 s c/u) + lo que dura una pregunta
         const val STALE_CONVERSATION_MS = 50_000L
 
-        const val GREETING = "Hola, bienvenido a Comfer. ¿Te ayudo a encontrar lo que estás buscando?"
+        // El cliente no sabe cuándo lo escucha Temi: se le dice que espere el aviso de la pantalla.
+        const val GREETING = "Hola, bienvenido a Comfer. ¿Te ayudo a encontrar lo que estás buscando? " +
+            "Háblame cuando en mi pantalla aparezca: te escucho."
         const val GREETING_SCREEN =
             "Hola. Puedo ayudarte.\nEncuentra productos, recibe recomendaciones o déjame acompañarte por la sala.\n" +
                 "Puedes hablarme cuando aparezca la instrucción en pantalla o tocar la pantalla."
         // Las últimas frases bastan: con más el resumen se vuelve muy largo para decirlo.
         private const val MAX_REPEATED_PHRASES = 3
 
-        const val CONFIRM_QUESTION = "¿Es correcto?"
+        // La confirmación es solo con botones: muchos clientes intentaban responder "sí" en voz alta.
+        const val CONFIRM_QUESTION = "¿Es correcto? Respóndeme tocando uno de los dos botones."
 
         // Repetir lo que dijo el cliente, sin reinterpretarlo, le muestra que Temi sí lo escuchó todo.
         fun repeatBack(phrases: List<String>): String? {

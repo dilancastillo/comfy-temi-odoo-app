@@ -214,7 +214,8 @@ class AssistanceViewModelTest {
     fun `two failed attempts give up`() {
         viewModel.start(fromDetection = true)
         viewModel.onListeningStarted()
-        viewModel.onNothingHeard()
+        analyzer.next = Result.failure(IllegalStateException("sin respuesta"))
+        viewModel.onHeard("eh bueno")
         assertEquals(AssistanceEffect.AskAndListen(AssistanceViewModel.RETRY_QUESTION), viewModel.effect.value)
 
         viewModel.onListeningStarted()
@@ -404,7 +405,7 @@ class AssistanceViewModelTest {
 
         val confirm = viewModel.effect.value as AssistanceEffect.Confirm
         assertEquals(
-            "Escuché: \"Estoy remodelando el baño\" y \"Un sanitario\".\nTe mostraré: sanitarios para baño.\n¿Es correcto?",
+            "Escuché: \"Estoy remodelando el baño\" y \"Un sanitario\".\nTe mostraré: sanitarios para baño.\n${AssistanceViewModel.CONFIRM_QUESTION}",
             confirm.summary
         )
         assertEquals("Entendí que buscas sanitarios para baño. ¿Es correcto?", confirm.understood)
@@ -443,6 +444,17 @@ class AssistanceViewModelTest {
         viewModel.onHeard("Pisos negros, o mejor grises")
 
         assertEquals("negro", CustomerSessionManager.pending()?.candidate?.activeNeed?.color)
+    }
+
+    @Test
+    fun `no answer to the greeting closes quietly`() {
+        viewModel.start(fromDetection = true)
+        viewModel.onListeningStarted()
+        viewModel.onNothingHeard()
+
+        assertEquals(AssistanceEffect.WalkedAway, viewModel.effect.value)
+        assertEquals(ConversationStage.IDLE, viewModel.stage)
+        assertTrue("opportunity_not_converted" in events)
     }
 
     private fun talk(analysis: IntentAnalysis) {

@@ -65,7 +65,7 @@ class DescribeCustomerContextUseCase {
         need.color?.let { append(" ").append(it) }
     }
 
-    private fun describeNeed(need: CustomerNeed?): String {
+    fun describeNeed(need: CustomerNeed?): String {
         val context = need ?: return "productos"
         val base = buildString {
             append(context.productType?.displayName ?: categoryName(context.category))

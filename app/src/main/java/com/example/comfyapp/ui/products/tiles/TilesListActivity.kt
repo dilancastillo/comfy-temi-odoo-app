@@ -156,7 +156,7 @@ class TilesListActivity : AppCompatActivity() {
         }
         if (request.showTravelVideo) {
             waitingToOpenProductList = true
-            speechController.speak("¡Excelente! Acompáñame.") {
+            speechController.speak(com.example.comfyapp.domain.usecase.NavigationMessages.DEPARTURE_SPEECH) {
                 if (waitingToOpenProductList) {
                     waitingToOpenProductList = false
                     openScreen()

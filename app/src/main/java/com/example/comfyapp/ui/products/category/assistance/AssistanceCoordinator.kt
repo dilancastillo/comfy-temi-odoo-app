@@ -20,6 +20,7 @@ import com.example.comfyapp.domain.model.ProductType
 import com.example.comfyapp.domain.model.ProductVideo
 import com.example.comfyapp.domain.repository.ProductCatalogRepository
 import com.example.comfyapp.domain.repository.RobotRepository
+import com.example.comfyapp.domain.usecase.NavigationMessages
 import com.example.comfyapp.logging.AssistanceEventLog
 import com.example.comfyapp.session.CustomerSessionManager
 import com.example.comfyapp.ui.products.category.ProductsUserViewModel
@@ -47,6 +48,8 @@ class AssistanceCoordinator(
         fun returnToScreen()
         // true mientras dura el aviso a la asesora: la pantalla apaga la detección de personas.
         fun onAdvisorFlowChanged(active: Boolean)
+        // Mientras Temi camina: a dónde van, sin más información encima.
+        fun showNavigation(text: String)
     }
 
     // onFinished(null) = la acción terminó; onFinished(pregunta) = hay que volver a escuchar.
@@ -173,12 +176,13 @@ class AssistanceCoordinator(
             onFinished(null)
             return
         }
-        speech.speak("Claro, acompáñame.") {
+        speech.speak(NavigationMessages.DEPARTURE_SPEECH) {
             AssistanceEventLog.event("navigation_started", "location" to location, "mode" to "location_only")
-            if (robotRepository.goToLocation(location, arrivalMessage = LOCATION_ARRIVAL_TEXT)) {
-                CustomerSessionManager.setCurrentLocation(location)
-            }
+            val arrival = NavigationMessages.arrival(location, context.activeNeed, showingProducts = false)
+            val started = robotRepository.goToLocation(location, arrivalMessage = arrival)
+            if (started) CustomerSessionManager.setCurrentLocation(location)
             onFinished(null)
+            if (started) host.showNavigation(NavigationMessages.departureScreen(location))
         }
     }
 
@@ -307,8 +311,6 @@ class AssistanceCoordinator(
         private const val RESULT_SPEECH_DELAY_MS = 1_200L
         const val CATALOG_SHOWN_TEXT =
             "Aquí tienes algunas opciones. Si quieres verlas en exhibición, toca Ir a verlos y te acompaño."
-        const val LOCATION_ARRIVAL_TEXT =
-            "Ya llegamos. Si quieres, también puedo ayudarte a comparar algunas opciones."
         const val ADVISOR_TEXT =
             "Claro. Liliana te atenderá apenas esté disponible. Mientras tanto, puedes mirar los productos en mi pantalla."
         const val ADVISOR_CALLING_TEXT = "Claro, ya le aviso a una asesora. Dame un momento."

@@ -215,6 +215,21 @@
             android:layout_height="match_parent"
             android:layout_gravity="center"/>
 
+        <!-- a dónde va Temi mientras camina; el texto lo pone la pantalla -->
+        <TextView
+            android:id="@+id/tvTravelNotice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="48dp"
+            android:background="#B3000000"
+            android:gravity="center"
+            android:paddingHorizontal="40dp"
+            android:paddingVertical="20dp"
+            android:textColor="@android:color/white"
+            android:textSize="40sp"
+            android:textStyle="bold"/>
+
         <ImageView
             android:id="@+id/btnCloseVideo"
             android:layout_width="48dp"
